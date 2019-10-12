@@ -175,7 +175,7 @@ static void APP_CoapAvaliableParkingCb(coapSessionStatus_t sessionStatus, void *
 static void APP_CoapLightoutsidehouseCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
 static void APP_CoapLightparkingCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
 static void APP_CoapGuestleavingCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
-
+static void APP_CoapGetParkingCallback(coapSessionStatus_t sessionStatus,void *pData,coapSession_t *pSession,uint32_t dataLen);
 
 static void APP_CoapHouseIptoFGCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
 static void APP_CoapHouseIptoParkingCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
@@ -563,6 +563,13 @@ static void APP_CoapVisitedCb(coapSessionStatus_t sessionStatus, void *pData, co
 
 
 }
+
+static void APP_CoapGetParkingCallback(coapSessionStatus_t sessionStatus,void *pData,coapSession_t *pSession,uint32_t dataLen)
+{
+    shell_writeN(pData, dataLen);
+    shell_write("\r\n");
+}
+
 static void APP_CoapAcceptanceCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen)
 {
 
@@ -570,10 +577,9 @@ static void APP_CoapAcceptanceCb(coapSessionStatus_t sessionStatus, void *pData,
     static uint32_t pMyPayloadSize=VISITED_RESP_ACK_MSG_LENGTH;
 
     coapSession_t *pMySession = NULL;
-    pMySession = COAP_OpenSession(mAppCoapInstId);
-    COAP_AddOptionToList(pMySession,COAP_URI_PATH_OPTION, APP_AVALIABLE_URI_PATH,SizeOfString(APP_AVALIABLE_URI_PATH));
-    ipAddr_t placeHolser;
-    uint8_t index = 0;
+    ifHandle_t ifHandle = THR_GetIpIfPtrByInstId(mThrInstanceId);
+    coapMsgTypesAndCodes_t coapMessageType;
+
 
     switch(frontGateStateMachine)
     {
@@ -601,17 +607,23 @@ static void APP_CoapAcceptanceCb(coapSessionStatus_t sessionStatus, void *pData,
             if(('Y' == ((char*)pData)[0]) || ('y' == ((char*)pData)[0]))
             {
                 frontGateStateMachine = visitedFrontGateState;
-                pMySession -> msgType=gCoapConfirmable_c;
-                pMySession -> code= gCoapGET_c;
-                pMySession -> pCallback =NULL;
-                for (index = 0; index < 16; index++)
+///
+                if(!IP_IF_IsMyAddr(ifHandle->ifUniqueId, &parkingIP) && (parkingIP.addr16[0] != 0))
                 {
-                    placeHolser.addr8[index] = gCoapDestAddress.addr8[index];
+                	pMySession = COAP_OpenSession(mAppCoapInstId);
+                     if(NULL != pMySession)
+                     {
+                    	 pMySession->pCallback = NULL;
+                         FLib_MemCpy(&pMySession->remoteAddr, &parkingIP, sizeof(ipAddr_t));
+                         COAP_SetUriPath(pMySession, (coapUriPath_t *)&gAPP_AVALIABLE_URI_PATH);
+                         coapMessageType = gCoapMsgTypeConGet_c;
+                         pMySession->pCallback = APP_CoapGetParkingCallback;
+
+                         COAP_Send(pMySession, coapMessageType, NULL, 0);
+                     }
                 }
-                /*gCoapDestAddress at this point has the House addres, it has to be changes to Parking address*/
-                FLib_MemCpy(&pMySession->remoteAddr,&gCoapDestAddress,sizeof(ipAddr_t));
-                COAP_SendMsg(pMySession,  pMySessionPayload, pMyPayloadSize);
-                shell_write("'NON' packet sent 'GET' with payload: ");
+
+                ////
                 shell_writeN((char*) pMySessionPayload, pMyPayloadSize);
                 shell_write("\r\n");
             }
@@ -625,11 +637,73 @@ static void APP_CoapAcceptanceCb(coapSessionStatus_t sessionStatus, void *pData,
         break;
     }
 }
+
+
+/*!*************************************************************************************************
+\private
+\fn     static void APP_CoapTemperatureCb(sessionStatus sessionStatus, void *pData,
+                                   coapSession_t *pSession, uint32_t dataLen)
+\brief  This function is the callback function for CoAP temperature message.
+\brief  It sends the temperature value in a CoAP ACK message.
+
+\param  [in]    sessionStatus   Status for CoAP session
+\param  [in]    pData           Pointer to CoAP message payload
+\param  [in]    pSession        Pointer to CoAP session
+\param  [in]    dataLen         Length of CoAP payload
+***************************************************************************************************/
 static void APP_CoapAvaliableParkingCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen)
 {
+	uint8_t* pIndex = NULL;
+    uint8_t *pTempString = MEM_BufferAlloc(10);
+    uint32_t ackPloadSize = 0;
+    static uint8_t pSlots[5]="11111";
+    static uint32_t pSlotsSize=5;
 
+    /* Send CoAP ACK */
+#ifdef HUB
+    if(gCoapGET_c == pSession->code)
+    {
+    	if(pTempString) {
+    	    /* Clear data and reset buffers */
+    	    FLib_MemSet(pTempString, 0, 10);
 
+    	    /* Compute output */
+    	    pIndex = pTempString;
+    	    NWKU_PrintDec((uint8_t)(last_temperature_cx10/10), pIndex, 2, TRUE);
+    	    pIndex += 2; /* keep only the first 2 digits */
+    	    *pIndex = '.';
+    	    pIndex++;
+    	    NWKU_PrintDec((uint8_t)(abs(last_temperature_cx10)%10), pIndex, 1, TRUE);
+    		ackPloadSize = strlen((char*)pTempString);
+    	}
+    }
+
+    /* Do not parse the message if it is duplicated */
+    else if((gCoapPOST_c == pSession->code) && (sessionStatus == gCoapSuccess_c))
+    {
+
+    }
+#endif
+
+    if(gCoapConfirmable_c == pSession->msgType)
+    {
+        if(gCoapGET_c == pSession->code)
+        {
+            COAP_Send(pSession, gCoapMsgTypeAckSuccessChanged_c, &pSlots[0], pSlotsSize);
+        }
+        else
+        {
+            COAP_Send(pSession, gCoapMsgTypeAckSuccessChanged_c, NULL, 0);
+        }
+    }
+#ifdef HUB
+    if(pTempString)
+    {
+        MEM_BufferFree(pTempString);
+    }
+#endif
 }
+
 
 void APP_CoapLightoutsidehouseCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen)
 {
