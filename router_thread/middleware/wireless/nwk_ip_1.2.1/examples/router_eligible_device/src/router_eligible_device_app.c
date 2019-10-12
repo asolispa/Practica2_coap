@@ -605,6 +605,12 @@ static void APP_CoapAcceptanceCb(coapSessionStatus_t sessionStatus, void *pData,
             {
               COAP_Send(pSession, gCoapMsgTypeAckSuccessChanged_c, pMySessionPayload, pMyPayloadSize);
             }
+            pMySessionResp -> msgType=gCoapConfirmable_c;
+            pMySessionResp -> code= gCoapPOST_c;
+            pMySessionResp -> pCallback =NULL;
+            FLib_MemCpy(&pMySessionResp->remoteAddr,&gCoapDestAddress,sizeof(ipAddr_t));
+            COAP_SendMsg(pMySessionResp,  pMySessionPayload, pMyPayloadSize);
+
             if(('Y' == ((char*)pData)[0]) || ('y' == ((char*)pData)[0]))
             {
                 frontGateStateMachine = visitedFrontGateState;
@@ -612,17 +618,12 @@ static void APP_CoapAcceptanceCb(coapSessionStatus_t sessionStatus, void *pData,
                 pMySession -> code= gCoapGET_c;
                 pMySession -> pCallback =NULL;
                 /*gCoapDestAddress at this point has the House addres, it has to be changes to Parking address*/
-                FLib_MemCpy(&pMySession->remoteAddr,&gCoapDestAddress,sizeof(ipAddr_t));
+                FLib_MemCpy(&pMySession->remoteAddr,&parkingIP,sizeof(ipAddr_t));
                 COAP_SendMsg(pMySession,  pMySessionPayload, pMyPayloadSize);
                 shell_write("'NON' packet sent 'GET' with payload: ");
                 shell_writeN((char*) pMySessionPayload, pMyPayloadSize);
                 shell_write("\r\n");
             }
-            pMySessionResp -> msgType=gCoapConfirmable_c;
-            pMySessionResp -> code= gCoapPOST_c;
-            pMySessionResp -> pCallback =NULL;
-            FLib_MemCpy(&pMySessionResp->remoteAddr,&gCoapDestAddress,sizeof(ipAddr_t));
-            COAP_SendMsg(pMySessionResp,  pMySessionPayload, pMyPayloadSize);
         }
         break;
     case visitedFrontGateState:
