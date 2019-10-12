@@ -110,8 +110,8 @@ Private macros
 #define APP_LIGHTHOUSE_URI_PATH                 "/lighthouse"
 #define APP_LIGHTPARKING_URI_PATH               "/lightparking"
 #define APP_GUESTLEAVING_URI_PATH               "/guestleaving"
-
-
+// HOUSE
+#define APP_ACCEPTANCERESP_URI_PATH                 "/acceptanceresp"
 
 #if LARGE_NETWORK
 #define APP_RESET_TO_FACTORY_URI_PATH           "/reset"
@@ -133,6 +133,7 @@ static bool_t mFirstPushButtonPressed = FALSE;
 static bool_t mJoiningIsAppInitiated = FALSE;
 
 static frontGateStateMachine_T frontGateStateMachine  = idleFrontGateState;
+static houseStateMachine_T houseStateMachine  = idleFrontGateState;
 
 static ipAddr_t houseIP = {0};
 static ipAddr_t parkingIP = {0};
@@ -166,17 +167,17 @@ static void App_RestoreLeaderLed(void *param);
 static void APP_CoapResource1Cb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
 static void APP_CoapResource2Cb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
 
-//FrontGate Callbacks
+//Application Callbacks
 static void APP_CoapVisitedCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
 static void APP_CoapAcceptanceCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
+static void APP_CoapAcceptanceRespCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
 static void APP_CoapAvaliableParkingCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
 
-//Parking Callbacks
 static void APP_CoapLightoutsidehouseCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
 static void APP_CoapLightparkingCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
 static void APP_CoapGuestleavingCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
 
-
+//IP Callbacks
 static void APP_CoapHouseIptoFGCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
 static void APP_CoapHouseIptoParkingCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
 
@@ -216,9 +217,13 @@ const coapUriPath_t gAPP_LIGHTHOUSE_URI_PATH = {SizeOfString(APP_LIGHTHOUSE_URI_
 const coapUriPath_t gAPP_LIGHTPARKING_URI_PATH = {SizeOfString(APP_LIGHTPARKING_URI_PATH), APP_LIGHTPARKING_URI_PATH};
 const coapUriPath_t gAPP_GUESTLEAVING_URI_PATH = {SizeOfString(APP_GUESTLEAVING_URI_PATH), APP_GUESTLEAVING_URI_PATH};
 
+//HOUSE
+const coapUriPath_t gAPP_ACCEPTANCERESP_URI_PATH = {SizeOfString(APP_ACCEPTANCERESP_URI_PATH), APP_ACCEPTANCERESP_URI_PATH};
+
+
+//IP
 const coapUriPath_t gAPP_HOUSEIP2FG_URI_PATH = {SizeOfString(APP_HOUSEIP2FG_URI_PATH), APP_HOUSEIP2FG_URI_PATH};
 const coapUriPath_t gAPP_HOUSEIP2PK_URI_PATH = {SizeOfString(APP_HOUSEIP2PK_URI_PATH), APP_HOUSEIP2PK_URI_PATH};
-
 
 const coapUriPath_t gAPP_FGIP2HOUSE_URI_PATH = {SizeOfString(APP_FGIP2HOUSE_URI_PATH), APP_FGIP2HOUSE_URI_PATH};
 const coapUriPath_t gAPP_FGIP2PK_URI_PATH = {SizeOfString(APP_FGIP2PK_URI_PATH), APP_FGIP2PK_URI_PATH};
@@ -521,14 +526,14 @@ static void APP_CoapHouseIptoParkingCb(coapSessionStatus_t sessionStatus, void *
 	houseIP.addr64[1] = pSession->remoteAddr.addr64[1];
 }
 
-//FrontGate Callbacks
+//Application Callbacks
 static void APP_CoapVisitedCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen)
 {
     static uint8_t pMySessionPayload[VISITED_ACK_MSG_LENGTH]="Hello";
     static uint32_t pMyPayloadSize=VISITED_ACK_MSG_LENGTH;
-    switch(frontGateStateMachine)
+    switch(houseStateMachine)
     {
-    case idleFrontGateState:
+    case idleHouseState:
         if (gCoapConfirmable_c == pSession->msgType)
         {
             if (gCoapGET_c == pSession->code)
@@ -550,9 +555,10 @@ static void APP_CoapVisitedCb(coapSessionStatus_t sessionStatus, void *pData, co
             {
               COAP_Send(pSession, gCoapMsgTypeAckSuccessChanged_c, pMySessionPayload, pMyPayloadSize);
             }
+            houseStateMachine = visitedHouseState;
         }
         break;
-    case visitedFrontGateState:
+    case visitedHouseState:
         // Do Nothing
         break;
     default:
@@ -570,10 +576,11 @@ static void APP_CoapAcceptanceCb(coapSessionStatus_t sessionStatus, void *pData,
     static uint32_t pMyPayloadSize=VISITED_RESP_ACK_MSG_LENGTH;
 
     coapSession_t *pMySession = NULL;
+    coapSession_t *pMySessionResp = NULL;
     pMySession = COAP_OpenSession(mAppCoapInstId);
+    pMySessionResp = COAP_OpenSession(mAppCoapInstId);
     COAP_AddOptionToList(pMySession,COAP_URI_PATH_OPTION, APP_AVALIABLE_URI_PATH,SizeOfString(APP_AVALIABLE_URI_PATH));
-    ipAddr_t placeHolser;
-    uint8_t index = 0;
+    COAP_AddOptionToList(pMySessionResp,COAP_URI_PATH_OPTION, APP_ACCEPTANCERESP_URI_PATH,SizeOfString(APP_ACCEPTANCERESP_URI_PATH));
 
     switch(frontGateStateMachine)
     {
@@ -604,10 +611,6 @@ static void APP_CoapAcceptanceCb(coapSessionStatus_t sessionStatus, void *pData,
                 pMySession -> msgType=gCoapConfirmable_c;
                 pMySession -> code= gCoapGET_c;
                 pMySession -> pCallback =NULL;
-                for (index = 0; index < 16; index++)
-                {
-                    placeHolser.addr8[index] = gCoapDestAddress.addr8[index];
-                }
                 /*gCoapDestAddress at this point has the House addres, it has to be changes to Parking address*/
                 FLib_MemCpy(&pMySession->remoteAddr,&gCoapDestAddress,sizeof(ipAddr_t));
                 COAP_SendMsg(pMySession,  pMySessionPayload, pMyPayloadSize);
@@ -615,6 +618,11 @@ static void APP_CoapAcceptanceCb(coapSessionStatus_t sessionStatus, void *pData,
                 shell_writeN((char*) pMySessionPayload, pMyPayloadSize);
                 shell_write("\r\n");
             }
+            pMySessionResp -> msgType=gCoapConfirmable_c;
+            pMySessionResp -> code= gCoapPOST_c;
+            pMySessionResp -> pCallback =NULL;
+            FLib_MemCpy(&pMySessionResp->remoteAddr,&gCoapDestAddress,sizeof(ipAddr_t));
+            COAP_SendMsg(pMySessionResp,  pMySessionPayload, pMyPayloadSize);
         }
         break;
     case visitedFrontGateState:
@@ -624,7 +632,49 @@ static void APP_CoapAcceptanceCb(coapSessionStatus_t sessionStatus, void *pData,
         // Do Nothing
         break;
     }
+
 }
+
+static void APP_CoapAcceptanceRespCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen)
+{
+    static uint8_t pMySessionPayload[VISITED_ACK_MSG_LENGTH]="Hello";
+    static uint32_t pMyPayloadSize=VISITED_ACK_MSG_LENGTH;
+    switch(houseStateMachine)
+    {
+    case idleHouseState:
+    	// Do Nothing
+        break;
+    case visitedHouseState:
+        if (gCoapConfirmable_c == pSession->msgType)
+        {
+            if (gCoapGET_c == pSession->code)
+            {
+              shell_write("FG says: ");
+            }
+            if (gCoapPOST_c == pSession->code)
+            {
+              shell_write("FG says: ");
+            }
+            if (gCoapPUT_c == pSession->code)
+            {
+              shell_write("FG says: ");
+            }
+            shell_writeN(pData, dataLen);
+            shell_write("\r\n");
+
+            if (gCoapFailure_c!=sessionStatus)
+            {
+              COAP_Send(pSession, gCoapMsgTypeAckSuccessChanged_c, pMySessionPayload, pMyPayloadSize);
+            }
+            houseStateMachine = idleHouseState;
+        }
+        break;
+    default:
+    	// Do Nothing
+        break;
+    }
+}
+
 static void APP_CoapAvaliableParkingCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen)
 {
 
@@ -1004,8 +1054,9 @@ static void APP_InitCoapDemo
 {APP_CoapLightoutsidehouseCb, (coapUriPath_t*)&gAPP_LIGHTHOUSE_URI_PATH},
 {APP_CoapLightparkingCb, (coapUriPath_t*)&gAPP_LIGHTPARKING_URI_PATH},
 {APP_CoapGuestleavingCb, (coapUriPath_t*)&gAPP_GUESTLEAVING_URI_PATH},
-
-
+//HOUSE
+{APP_CoapAcceptanceRespCb, (coapUriPath_t*)&gAPP_ACCEPTANCERESP_URI_PATH},
+//IP
 {APP_CoapHouseIptoFGCb, (coapUriPath_t*)&gAPP_HOUSEIP2FG_URI_PATH},
 {APP_CoapHouseIptoParkingCb, (coapUriPath_t*)&gAPP_HOUSEIP2PK_URI_PATH},
 {APP_CoapFGIptoHouseCb, (coapUriPath_t*)&gAPP_FGIP2HOUSE_URI_PATH},

@@ -57,6 +57,13 @@ typedef enum
     visitedFrontGateState
 
 } frontGateStateMachine_T;
+
+typedef enum
+{
+    idleHouseState = 0,
+    visitedHouseState
+
+} houseStateMachine_T;
 /* None */
 
 /*==================================================================================================
