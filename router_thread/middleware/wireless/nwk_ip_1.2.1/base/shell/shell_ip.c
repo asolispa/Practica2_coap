@@ -139,6 +139,8 @@ Private macros
                                  QUH(gIpVerMinor_c) "." \
                                  QUH(gIpVerPatch_c)
 
+
+
 /*==================================================================================================
 Private type definitions
 ==================================================================================================*/
@@ -223,6 +225,12 @@ static void SHELL_PrintActiveTimestamp(void *param);
 
 /* CoAP functions */
 static int8_t SHELL_CoapSend(uint8_t argc, char *argv []);
+static int8_t SHELL_SendHouseIptoFGSend(uint8_t argc, char *argv []);
+static int8_t SHELL_SendHouseIptoParkingSend(uint8_t argc, char *argv []);
+static int8_t SHELL_SendFGIptoHouseSend(uint8_t argc, char *argv []);
+static int8_t SHELL_SendFGIptoParkingSend(uint8_t argc, char *argv []);
+static int8_t SHELL_SendParkingIptoFGSend(uint8_t argc, char *argv []);
+static int8_t SHELL_SendParkingIptoHouseSend(uint8_t argc, char *argv []);
 static void SHELL_CoapAckReceive(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
 
 /* Ping functions */
@@ -449,6 +457,84 @@ const cmd_tbl_t aShellCommands[] =
     "         coap CON POST 2001::1 /led flash\r\n"
     "         coap CON POST 2001::1 /led rgb r255 g255 b255\r\n"
     "         coap CON GET 2001::1 /temp\r\n"
+#endif /* SHELL_USE_HELP */
+#if SHELL_USE_AUTO_COMPLETE
+        ,NULL
+#endif /* SHELL_USE_AUTO_COMPLETE */
+    },
+    {
+        "sendhouseiptofg", SHELL_CMD_MAX_ARGS, 0, SHELL_SendHouseIptoFGSend
+#if SHELL_USE_HELP
+    ,"Send CoAP message",
+    "Send CoAP message\r\n"
+    "   coap <reqtype: CON/NON> <reqcode (GET/POST/PUT/DELETE)> <IP addr dest> <URI path> <payload ASCII>\r\n"
+    "Example: sendhouseiptofg FG_IP \r\n"
+
+#endif /* SHELL_USE_HELP */
+#if SHELL_USE_AUTO_COMPLETE
+        ,NULL
+#endif /* SHELL_USE_AUTO_COMPLETE */
+    },
+    {
+        "sendhouseiptoparking", SHELL_CMD_MAX_ARGS, 0, SHELL_SendHouseIptoParkingSend
+#if SHELL_USE_HELP
+    ,"Send CoAP message",
+    "Send CoAP message\r\n"
+    "   coap <reqtype: CON/NON> <reqcode (GET/POST/PUT/DELETE)> <IP addr dest> <URI path> <payload ASCII>\r\n"
+    "Example: sendhouseiptofg FG_IP \r\n"
+
+#endif /* SHELL_USE_HELP */
+#if SHELL_USE_AUTO_COMPLETE
+        ,NULL
+#endif /* SHELL_USE_AUTO_COMPLETE */
+    },
+    {
+        "sendfgiptohouse", SHELL_CMD_MAX_ARGS, 0, SHELL_SendFGIptoHouseSend
+#if SHELL_USE_HELP
+    ,"Send CoAP message",
+    "Send CoAP message\r\n"
+    "   coap <reqtype: CON/NON> <reqcode (GET/POST/PUT/DELETE)> <IP addr dest> <URI path> <payload ASCII>\r\n"
+    "Example: sendhouseiptofg FG_IP \r\n"
+
+#endif /* SHELL_USE_HELP */
+#if SHELL_USE_AUTO_COMPLETE
+        ,NULL
+#endif /* SHELL_USE_AUTO_COMPLETE */
+    },
+    {
+        "sendfgiptoparking", SHELL_CMD_MAX_ARGS, 0, SHELL_SendFGIptoParkingSend
+#if SHELL_USE_HELP
+    ,"Send CoAP message",
+    "Send CoAP message\r\n"
+    "   coap <reqtype: CON/NON> <reqcode (GET/POST/PUT/DELETE)> <IP addr dest> <URI path> <payload ASCII>\r\n"
+    "Example: sendhouseiptofg FG_IP \r\n"
+
+#endif /* SHELL_USE_HELP */
+#if SHELL_USE_AUTO_COMPLETE
+        ,NULL
+#endif /* SHELL_USE_AUTO_COMPLETE */
+    },
+    {
+        "sendparkingiptohouse", SHELL_CMD_MAX_ARGS, 0, SHELL_SendParkingIptoHouseSend
+#if SHELL_USE_HELP
+    ,"Send CoAP message",
+    "Send CoAP message\r\n"
+    "   coap <reqtype: CON/NON> <reqcode (GET/POST/PUT/DELETE)> <IP addr dest> <URI path> <payload ASCII>\r\n"
+    "Example: sendhouseiptofg FG_IP \r\n"
+
+#endif /* SHELL_USE_HELP */
+#if SHELL_USE_AUTO_COMPLETE
+        ,NULL
+#endif /* SHELL_USE_AUTO_COMPLETE */
+    },
+    {
+        "sendparkingiptofg", SHELL_CMD_MAX_ARGS, 0, SHELL_SendParkingIptoFGSend
+#if SHELL_USE_HELP
+    ,"Send CoAP message",
+    "Send CoAP message\r\n"
+    "   coap <reqtype: CON/NON> <reqcode (GET/POST/PUT/DELETE)> <IP addr dest> <URI path> <payload ASCII>\r\n"
+    "Example: sendhouseiptofg FG_IP \r\n"
+
 #endif /* SHELL_USE_HELP */
 #if SHELL_USE_AUTO_COMPLETE
         ,NULL
@@ -3197,6 +3283,455 @@ static uint8_t *SHELL_SearchInterfaceById
     return result;
 }
 
+static int8_t SHELL_SendHouseIptoParkingSend(uint8_t argc, char *argv [])
+{
+    /*coap <reqtype: CON/NON> <reqcode (GET/POST/PUT/DELETE)> <IP addr dest> <URI path> <payload ASCII>*/
+    char *pValue;
+    command_ret_t ret = CMD_RET_ASYNC;
+    coapMessageTypes_t requestType = gCoapConfirmable_c;
+    coapReqRespCodes_t requestCode = gCoapPOST_c;
+    coapSession_t* pCoapSession = NULL;
+    uint8_t *pCoapPayload = NULL;
+    uint32_t coapPayloadSize = 0;
+    ipAddr_t destAddr;
+    coapStartUnsecParams_t coapParams = {COAP_DEFAULT_PORT, AF_INET6};
+
+    if (argc >= 1)
+    {
+    	requestType = gCoapConfirmable_c;
+    	requestCode = gCoapPOST_c;
+
+        if(THR_ALL_FFs8 == mCoapInstId)
+        {
+            mCoapInstId = COAP_CreateInstance(NULL, &coapParams, gIpIfSlp0_c, NULL, 0);
+        }
+
+        pCoapSession = COAP_OpenSession(mCoapInstId);
+
+        if(NULL != pCoapSession)
+        {
+            /* Get destination address */
+            pton(AF_INET6,argv[1], &destAddr);
+
+            /* Get URI path */
+            COAP_AddOptionToList(pCoapSession, COAP_URI_PATH_OPTION, APP_HOUSEIP2PK_URI_PATH,SizeOfString(APP_HOUSEIP2PK_URI_PATH));
+
+            /* Get payload */
+            if(argc >= 2)
+            {
+                pValue = argv[2];
+
+                if(pValue)
+                {
+                    coapPayloadSize = strlen(pValue);
+
+                    if(!strcmp(argv[2], "rgb"))
+                    {
+                        coapPayloadSize += strlen(argv[3]) + strlen(argv[4]) + strlen(argv[5]) + 4;
+                    }
+                    pCoapPayload = MEM_BufferAlloc(coapPayloadSize);
+
+                    if(pCoapPayload)
+                    {
+                        FLib_MemSet(pCoapPayload, 0, coapPayloadSize);
+                        FLib_MemCpy(pCoapPayload, pValue, coapPayloadSize);
+                    }
+                }
+            }
+            /* Send CoAP message */
+            FLib_MemCpy(&pCoapSession->remoteAddr, &destAddr, sizeof(ipAddr_t));
+            pCoapSession->code = requestCode;
+            pCoapSession->msgType = requestType;
+            pCoapSession->pCallback = SHELL_CoapAckReceive;
+            COAP_SendMsg(pCoapSession, pCoapPayload, coapPayloadSize);
+
+            MEM_BufferFree(pCoapPayload);
+        }
+    }
+    else
+    {
+        shell_write("Invalid number of parameters!\n\r");
+        ret = CMD_RET_SUCCESS;
+    }
+
+    return ret;
+}
+static int8_t SHELL_SendFGIptoHouseSend(uint8_t argc, char *argv [])
+{
+    /*coap <reqtype: CON/NON> <reqcode (GET/POST/PUT/DELETE)> <IP addr dest> <URI path> <payload ASCII>*/
+    char *pValue;
+    command_ret_t ret = CMD_RET_ASYNC;
+    coapMessageTypes_t requestType = gCoapConfirmable_c;
+    coapReqRespCodes_t requestCode = gCoapPOST_c;
+    coapSession_t* pCoapSession = NULL;
+    uint8_t *pCoapPayload = NULL;
+    uint32_t coapPayloadSize = 0;
+    ipAddr_t destAddr;
+    coapStartUnsecParams_t coapParams = {COAP_DEFAULT_PORT, AF_INET6};
+
+    if (argc >= 1)
+    {
+    	requestType = gCoapConfirmable_c;
+    	requestCode = gCoapPOST_c;
+
+        if(THR_ALL_FFs8 == mCoapInstId)
+        {
+            mCoapInstId = COAP_CreateInstance(NULL, &coapParams, gIpIfSlp0_c, NULL, 0);
+        }
+
+        pCoapSession = COAP_OpenSession(mCoapInstId);
+
+        if(NULL != pCoapSession)
+        {
+            /* Get destination address */
+            pton(AF_INET6,argv[1], &destAddr);
+
+            /* Get URI path */
+            COAP_AddOptionToList(pCoapSession, COAP_URI_PATH_OPTION, APP_FGIP2HOUSE_URI_PATH,SizeOfString(APP_FGIP2HOUSE_URI_PATH));
+
+            /* Get payload */
+            if(argc >= 2)
+            {
+                pValue = argv[2];
+
+                if(pValue)
+                {
+                    coapPayloadSize = strlen(pValue);
+
+                    if(!strcmp(argv[2], "rgb"))
+                    {
+                        coapPayloadSize += strlen(argv[3]) + strlen(argv[4]) + strlen(argv[5]) + 4;
+                    }
+                    pCoapPayload = MEM_BufferAlloc(coapPayloadSize);
+
+                    if(pCoapPayload)
+                    {
+                        FLib_MemSet(pCoapPayload, 0, coapPayloadSize);
+                        FLib_MemCpy(pCoapPayload, pValue, coapPayloadSize);
+                    }
+                }
+            }
+            /* Send CoAP message */
+            FLib_MemCpy(&pCoapSession->remoteAddr, &destAddr, sizeof(ipAddr_t));
+            pCoapSession->code = requestCode;
+            pCoapSession->msgType = requestType;
+            pCoapSession->pCallback = SHELL_CoapAckReceive;
+            COAP_SendMsg(pCoapSession, pCoapPayload, coapPayloadSize);
+
+            MEM_BufferFree(pCoapPayload);
+        }
+    }
+    else
+    {
+        shell_write("Invalid number of parameters!\n\r");
+        ret = CMD_RET_SUCCESS;
+    }
+
+    return ret;
+}
+static int8_t SHELL_SendFGIptoParkingSend(uint8_t argc, char *argv [])
+{
+    /*coap <reqtype: CON/NON> <reqcode (GET/POST/PUT/DELETE)> <IP addr dest> <URI path> <payload ASCII>*/
+    char *pValue;
+    command_ret_t ret = CMD_RET_ASYNC;
+    coapMessageTypes_t requestType = gCoapConfirmable_c;
+    coapReqRespCodes_t requestCode = gCoapPOST_c;
+    coapSession_t* pCoapSession = NULL;
+    uint8_t *pCoapPayload = NULL;
+    uint32_t coapPayloadSize = 0;
+    ipAddr_t destAddr;
+    coapStartUnsecParams_t coapParams = {COAP_DEFAULT_PORT, AF_INET6};
+
+    if (argc >= 1)
+    {
+    	requestType = gCoapConfirmable_c;
+    	requestCode = gCoapPOST_c;
+
+        if(THR_ALL_FFs8 == mCoapInstId)
+        {
+            mCoapInstId = COAP_CreateInstance(NULL, &coapParams, gIpIfSlp0_c, NULL, 0);
+        }
+
+        pCoapSession = COAP_OpenSession(mCoapInstId);
+
+        if(NULL != pCoapSession)
+        {
+            /* Get destination address */
+            pton(AF_INET6,argv[1], &destAddr);
+
+            /* Get URI path */
+            COAP_AddOptionToList(pCoapSession, COAP_URI_PATH_OPTION, APP_FGIP2PK_URI_PATH,SizeOfString(APP_FGIP2PK_URI_PATH));
+
+            /* Get payload */
+            if(argc >= 2)
+            {
+                pValue = argv[2];
+
+                if(pValue)
+                {
+                    coapPayloadSize = strlen(pValue);
+
+                    if(!strcmp(argv[2], "rgb"))
+                    {
+                        coapPayloadSize += strlen(argv[3]) + strlen(argv[4]) + strlen(argv[5]) + 4;
+                    }
+                    pCoapPayload = MEM_BufferAlloc(coapPayloadSize);
+
+                    if(pCoapPayload)
+                    {
+                        FLib_MemSet(pCoapPayload, 0, coapPayloadSize);
+                        FLib_MemCpy(pCoapPayload, pValue, coapPayloadSize);
+                    }
+                }
+            }
+            /* Send CoAP message */
+            FLib_MemCpy(&pCoapSession->remoteAddr, &destAddr, sizeof(ipAddr_t));
+            pCoapSession->code = requestCode;
+            pCoapSession->msgType = requestType;
+            pCoapSession->pCallback = SHELL_CoapAckReceive;
+            COAP_SendMsg(pCoapSession, pCoapPayload, coapPayloadSize);
+
+            MEM_BufferFree(pCoapPayload);
+        }
+    }
+    else
+    {
+        shell_write("Invalid number of parameters!\n\r");
+        ret = CMD_RET_SUCCESS;
+    }
+
+    return ret;
+}
+static int8_t SHELL_SendParkingIptoFGSend(uint8_t argc, char *argv [])
+{
+    /*coap <reqtype: CON/NON> <reqcode (GET/POST/PUT/DELETE)> <IP addr dest> <URI path> <payload ASCII>*/
+    char *pValue;
+    command_ret_t ret = CMD_RET_ASYNC;
+    coapMessageTypes_t requestType = gCoapConfirmable_c;
+    coapReqRespCodes_t requestCode = gCoapPOST_c;
+    coapSession_t* pCoapSession = NULL;
+    uint8_t *pCoapPayload = NULL;
+    uint32_t coapPayloadSize = 0;
+    ipAddr_t destAddr;
+    coapStartUnsecParams_t coapParams = {COAP_DEFAULT_PORT, AF_INET6};
+
+    if (argc >= 1)
+    {
+    	requestType = gCoapConfirmable_c;
+    	requestCode = gCoapPOST_c;
+
+        if(THR_ALL_FFs8 == mCoapInstId)
+        {
+            mCoapInstId = COAP_CreateInstance(NULL, &coapParams, gIpIfSlp0_c, NULL, 0);
+        }
+
+        pCoapSession = COAP_OpenSession(mCoapInstId);
+
+        if(NULL != pCoapSession)
+        {
+            /* Get destination address */
+            pton(AF_INET6,argv[1], &destAddr);
+
+            /* Get URI path */
+            COAP_AddOptionToList(pCoapSession, COAP_URI_PATH_OPTION, APP_PKIP2FG_URI_PATH,SizeOfString(APP_PKIP2FG_URI_PATH));
+
+            /* Get payload */
+            if(argc >= 2)
+            {
+                pValue = argv[2];
+
+                if(pValue)
+                {
+                    coapPayloadSize = strlen(pValue);
+
+                    if(!strcmp(argv[2], "rgb"))
+                    {
+                        coapPayloadSize += strlen(argv[3]) + strlen(argv[4]) + strlen(argv[5]) + 4;
+                    }
+                    pCoapPayload = MEM_BufferAlloc(coapPayloadSize);
+
+                    if(pCoapPayload)
+                    {
+                        FLib_MemSet(pCoapPayload, 0, coapPayloadSize);
+                        FLib_MemCpy(pCoapPayload, pValue, coapPayloadSize);
+                    }
+                }
+            }
+            /* Send CoAP message */
+            FLib_MemCpy(&pCoapSession->remoteAddr, &destAddr, sizeof(ipAddr_t));
+            pCoapSession->code = requestCode;
+            pCoapSession->msgType = requestType;
+            pCoapSession->pCallback = SHELL_CoapAckReceive;
+            COAP_SendMsg(pCoapSession, pCoapPayload, coapPayloadSize);
+
+            MEM_BufferFree(pCoapPayload);
+        }
+    }
+    else
+    {
+        shell_write("Invalid number of parameters!\n\r");
+        ret = CMD_RET_SUCCESS;
+    }
+
+    return ret;
+}
+static int8_t SHELL_SendParkingIptoHouseSend(uint8_t argc, char *argv [])
+{
+    /*coap <reqtype: CON/NON> <reqcode (GET/POST/PUT/DELETE)> <IP addr dest> <URI path> <payload ASCII>*/
+    char *pValue;
+    command_ret_t ret = CMD_RET_ASYNC;
+    coapMessageTypes_t requestType = gCoapConfirmable_c;
+    coapReqRespCodes_t requestCode = gCoapPOST_c;
+    coapSession_t* pCoapSession = NULL;
+    uint8_t *pCoapPayload = NULL;
+    uint32_t coapPayloadSize = 0;
+    ipAddr_t destAddr;
+    coapStartUnsecParams_t coapParams = {COAP_DEFAULT_PORT, AF_INET6};
+
+    if (argc >= 1)
+    {
+    	requestType = gCoapConfirmable_c;
+    	requestCode = gCoapPOST_c;
+
+        if(THR_ALL_FFs8 == mCoapInstId)
+        {
+            mCoapInstId = COAP_CreateInstance(NULL, &coapParams, gIpIfSlp0_c, NULL, 0);
+        }
+
+        pCoapSession = COAP_OpenSession(mCoapInstId);
+
+        if(NULL != pCoapSession)
+        {
+            /* Get destination address */
+            pton(AF_INET6,argv[1], &destAddr);
+
+            /* Get URI path */
+            COAP_AddOptionToList(pCoapSession, COAP_URI_PATH_OPTION, APP_PKIP2HOUSE_URI_PATH,SizeOfString(APP_PKIP2HOUSE_URI_PATH));
+
+            /* Get payload */
+            if(argc >= 2)
+            {
+                pValue = argv[2];
+
+                if(pValue)
+                {
+                    coapPayloadSize = strlen(pValue);
+
+                    if(!strcmp(argv[2], "rgb"))
+                    {
+                        coapPayloadSize += strlen(argv[3]) + strlen(argv[4]) + strlen(argv[5]) + 4;
+                    }
+                    pCoapPayload = MEM_BufferAlloc(coapPayloadSize);
+
+                    if(pCoapPayload)
+                    {
+                        FLib_MemSet(pCoapPayload, 0, coapPayloadSize);
+                        FLib_MemCpy(pCoapPayload, pValue, coapPayloadSize);
+                    }
+                }
+            }
+            /* Send CoAP message */
+            FLib_MemCpy(&pCoapSession->remoteAddr, &destAddr, sizeof(ipAddr_t));
+            pCoapSession->code = requestCode;
+            pCoapSession->msgType = requestType;
+            pCoapSession->pCallback = SHELL_CoapAckReceive;
+            COAP_SendMsg(pCoapSession, pCoapPayload, coapPayloadSize);
+
+            MEM_BufferFree(pCoapPayload);
+        }
+    }
+    else
+    {
+        shell_write("Invalid number of parameters!\n\r");
+        ret = CMD_RET_SUCCESS;
+    }
+
+    return ret;
+}
+
+/*!*************************************************************************************************
+\private
+\fn     void SHELL_SendHouseIptoFGSend(uint8_t argc, char *argv[])
+\brief  This function is used for "coap" command.
+
+\param  [in]    argc      Number of arguments the command was called with
+\param  [in]    argv      Pointer to a list of pointers to the arguments
+
+\return         int8_t    Status of the command
+***************************************************************************************************/
+static int8_t SHELL_SendHouseIptoFGSend(uint8_t argc, char *argv [])
+{
+    /*coap <reqtype: CON/NON> <reqcode (GET/POST/PUT/DELETE)> <IP addr dest> <URI path> <payload ASCII>*/
+    char *pValue;
+    command_ret_t ret = CMD_RET_ASYNC;
+    coapMessageTypes_t requestType = gCoapConfirmable_c;
+    coapReqRespCodes_t requestCode = gCoapPOST_c;
+    coapSession_t* pCoapSession = NULL;
+    uint8_t *pCoapPayload = NULL;
+    uint32_t coapPayloadSize = 0;
+    ipAddr_t destAddr;
+    coapStartUnsecParams_t coapParams = {COAP_DEFAULT_PORT, AF_INET6};
+
+    if (argc >= 1)
+    {
+    	requestType = gCoapConfirmable_c;
+    	requestCode = gCoapPOST_c;
+
+        if(THR_ALL_FFs8 == mCoapInstId)
+        {
+            mCoapInstId = COAP_CreateInstance(NULL, &coapParams, gIpIfSlp0_c, NULL, 0);
+        }
+
+        pCoapSession = COAP_OpenSession(mCoapInstId);
+
+        if(NULL != pCoapSession)
+        {
+            /* Get destination address */
+            pton(AF_INET6,argv[1], &destAddr);
+
+            /* Get URI path */
+            COAP_AddOptionToList(pCoapSession, COAP_URI_PATH_OPTION, APP_HOUSEIP2FG_URI_PATH,SizeOfString(APP_HOUSEIP2FG_URI_PATH));
+
+            /* Get payload */
+            if(argc >= 2)
+            {
+                pValue = argv[2];
+
+                if(pValue)
+                {
+                    coapPayloadSize = strlen(pValue);
+
+                    if(!strcmp(argv[2], "rgb"))
+                    {
+                        coapPayloadSize += strlen(argv[3]) + strlen(argv[4]) + strlen(argv[5]) + 4;
+                    }
+                    pCoapPayload = MEM_BufferAlloc(coapPayloadSize);
+
+                    if(pCoapPayload)
+                    {
+                        FLib_MemSet(pCoapPayload, 0, coapPayloadSize);
+                        FLib_MemCpy(pCoapPayload, pValue, coapPayloadSize);
+                    }
+                }
+            }
+            /* Send CoAP message */
+            FLib_MemCpy(&pCoapSession->remoteAddr, &destAddr, sizeof(ipAddr_t));
+            pCoapSession->code = requestCode;
+            pCoapSession->msgType = requestType;
+            pCoapSession->pCallback = SHELL_CoapAckReceive;
+            COAP_SendMsg(pCoapSession, pCoapPayload, coapPayloadSize);
+
+            MEM_BufferFree(pCoapPayload);
+        }
+    }
+    else
+    {
+        shell_write("Invalid number of parameters!\n\r");
+        ret = CMD_RET_SUCCESS;
+    }
+
+    return ret;
+}
 /*!*************************************************************************************************
 \private
 \fn     void SHELL_CoapSend(uint8_t argc, char *argv[])

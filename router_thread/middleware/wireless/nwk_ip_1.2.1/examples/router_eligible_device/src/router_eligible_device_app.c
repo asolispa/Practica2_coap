@@ -99,6 +99,20 @@ Private macros
 #define APP_LED_URI_PATH                        "/led"
 #define APP_TEMP_URI_PATH                       "/temp"
 #define APP_SINK_URI_PATH                       "/sink"
+
+#define APP_RESOURCE1_URI_PATH                       "/resource1"
+#define APP_RESOURCE2_URI_PATH                       "/resource2"
+// FRONTGATE
+#define APP_VISITED_URI_PATH                    "/visited"
+#define APP_ACCEPTANCE_URI_PATH                 "/acceptance"
+#define APP_AVALIABLE_URI_PATH                  "/avaliable"
+// PARKING
+#define APP_LIGHTHOUSE_URI_PATH                 "/lighthouse"
+#define APP_LIGHTPARKING_URI_PATH               "/lightparking"
+#define APP_GUESTLEAVING_URI_PATH               "/guestleaving"
+
+
+
 #if LARGE_NETWORK
 #define APP_RESET_TO_FACTORY_URI_PATH           "/reset"
 #endif
@@ -117,6 +131,12 @@ static instanceId_t mThrInstanceId = gInvalidInstanceId_c;    /*!< Thread Instan
 static bool_t mFirstPushButtonPressed = FALSE;
 
 static bool_t mJoiningIsAppInitiated = FALSE;
+
+static frontGateStateMachine_T frontGateStateMachine  = idleFrontGateState;
+
+static ipAddr_t houseIP = {0};
+static ipAddr_t parkingIP = {0};
+static ipAddr_t frontGateIP = {0};
 
 /*==================================================================================================
 Private prototypes
@@ -141,6 +161,32 @@ static void APP_CoapLedCb(coapSessionStatus_t sessionStatus, void *pData, coapSe
 static void APP_CoapTempCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
 static void APP_CoapSinkCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
 static void App_RestoreLeaderLed(void *param);
+
+//asolispa
+static void APP_CoapResource1Cb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
+static void APP_CoapResource2Cb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
+
+//FrontGate Callbacks
+static void APP_CoapVisitedCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
+static void APP_CoapAcceptanceCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
+static void APP_CoapAvaliableParkingCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
+
+//Parking Callbacks
+static void APP_CoapLightoutsidehouseCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
+static void APP_CoapLightparkingCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
+static void APP_CoapGuestleavingCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
+
+
+static void APP_CoapHouseIptoFGCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
+static void APP_CoapHouseIptoParkingCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
+
+static void APP_CoapFGIptoHouseCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
+static void APP_CoapFGIptoParkingCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
+
+static void APP_CoapParkingIptoFGCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
+static void APP_CoapParkingIptoHouseCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
+
+
 #if LARGE_NETWORK
 static void APP_CoapResetToFactoryDefaultsCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
 static void APP_SendResetToFactoryCommand(void *param);
@@ -156,6 +202,32 @@ Public global variables declarations
 const coapUriPath_t gAPP_LED_URI_PATH  = {SizeOfString(APP_LED_URI_PATH), (uint8_t *)APP_LED_URI_PATH};
 const coapUriPath_t gAPP_TEMP_URI_PATH = {SizeOfString(APP_TEMP_URI_PATH), (uint8_t *)APP_TEMP_URI_PATH};
 const coapUriPath_t gAPP_SINK_URI_PATH = {SizeOfString(APP_SINK_URI_PATH), (uint8_t *)APP_SINK_URI_PATH};
+
+//asolispa
+const coapUriPath_t gAPP_RESOURCE1_URI_PATH = {SizeOfString(APP_RESOURCE1_URI_PATH), APP_RESOURCE1_URI_PATH};
+const coapUriPath_t gAPP_RESOURCE2_URI_PATH = {SizeOfString(APP_RESOURCE2_URI_PATH), APP_RESOURCE2_URI_PATH};
+// FRONT GATE
+const coapUriPath_t gAPP_VISITED_URI_PATH = {SizeOfString(APP_VISITED_URI_PATH), APP_VISITED_URI_PATH};
+const coapUriPath_t gAPP_ACCEPTANCE_URI_PATH = {SizeOfString(APP_ACCEPTANCE_URI_PATH), APP_ACCEPTANCE_URI_PATH};
+const coapUriPath_t gAPP_AVALIABLE_URI_PATH = {SizeOfString(APP_AVALIABLE_URI_PATH), APP_AVALIABLE_URI_PATH};
+
+// PARKING
+const coapUriPath_t gAPP_LIGHTHOUSE_URI_PATH = {SizeOfString(APP_LIGHTHOUSE_URI_PATH), APP_LIGHTHOUSE_URI_PATH};
+const coapUriPath_t gAPP_LIGHTPARKING_URI_PATH = {SizeOfString(APP_LIGHTPARKING_URI_PATH), APP_LIGHTPARKING_URI_PATH};
+const coapUriPath_t gAPP_GUESTLEAVING_URI_PATH = {SizeOfString(APP_GUESTLEAVING_URI_PATH), APP_GUESTLEAVING_URI_PATH};
+
+const coapUriPath_t gAPP_HOUSEIP2FG_URI_PATH = {SizeOfString(APP_HOUSEIP2FG_URI_PATH), APP_HOUSEIP2FG_URI_PATH};
+const coapUriPath_t gAPP_HOUSEIP2PK_URI_PATH = {SizeOfString(APP_HOUSEIP2PK_URI_PATH), APP_HOUSEIP2PK_URI_PATH};
+
+
+const coapUriPath_t gAPP_FGIP2HOUSE_URI_PATH = {SizeOfString(APP_FGIP2HOUSE_URI_PATH), APP_FGIP2HOUSE_URI_PATH};
+const coapUriPath_t gAPP_FGIP2PK_URI_PATH = {SizeOfString(APP_FGIP2PK_URI_PATH), APP_FGIP2PK_URI_PATH};
+
+const coapUriPath_t gAPP_PKIP2FG_URI_PATH = {SizeOfString(APP_PKIP2FG_URI_PATH), APP_PKIP2FG_URI_PATH};
+const coapUriPath_t gAPP_PKIP2HOUSE_URI_PATH = {SizeOfString(APP_PKIP2HOUSE_URI_PATH), APP_PKIP2HOUSE_URI_PATH};
+
+
+
 #if LARGE_NETWORK
 const coapUriPath_t gAPP_RESET_URI_PATH = {SizeOfString(APP_RESET_TO_FACTORY_URI_PATH), (uint8_t *)APP_RESET_TO_FACTORY_URI_PATH};
 #endif
@@ -308,6 +380,427 @@ void APP_NwkScanHandler
 
 \param  [in]    param    Pointer to stack event
 ***************************************************************************************************/
+
+//Hands on
+
+static void APP_CoapResource1Cb
+(
+coapSessionStatus_t sessionStatus,
+void *pData,
+coapSession_t *pSession,
+uint32_t dataLen
+)
+
+{
+  static uint8_t pMySessionPayload[3]={0x31,0x32,0x33};
+  static uint32_t pMyPayloadSize=3;
+  coapSession_t *pMySession = NULL;
+  pMySession = COAP_OpenSession(mAppCoapInstId);
+  COAP_AddOptionToList(pMySession,COAP_URI_PATH_OPTION, APP_RESOURCE2_URI_PATH,SizeOfString(APP_RESOURCE2_URI_PATH));
+
+    if (gCoapConfirmable_c == pSession->msgType)
+  {
+    if (gCoapGET_c == pSession->code)
+    {
+      shell_write("'CON' packet received 'GET' with payload: ");
+    }
+    if (gCoapPOST_c == pSession->code)
+    {
+      shell_write("'CON' packet received 'POST' with payload: ");
+    }
+    if (gCoapPUT_c == pSession->code)
+    {
+      shell_write("'CON' packet received 'PUT' with payload: ");
+    }
+    if (gCoapFailure_c!=sessionStatus)
+    {
+      COAP_Send(pSession, gCoapMsgTypeAckSuccessChanged_c, pMySessionPayload, pMyPayloadSize);
+    }
+  }
+
+  else if(gCoapNonConfirmable_c == pSession->msgType)
+  {
+    if (gCoapGET_c == pSession->code)
+    {
+      shell_write("'NON' packet received 'GET' with payload: ");
+    }
+    if (gCoapPOST_c == pSession->code)
+    {
+      shell_write("'NON' packet received 'POST' with payload: ");
+    }
+    if (gCoapPUT_c == pSession->code)
+    {
+      shell_write("'NON' packet received 'PUT' with payload: ");
+    }
+  }
+  shell_writeN(pData, dataLen);
+  shell_write("\r\n");
+  pMySession -> msgType=gCoapNonConfirmable_c;
+  pMySession -> code= gCoapPOST_c;
+  pMySession -> pCallback =NULL;
+  FLib_MemCpy(&pMySession->remoteAddr,&gCoapDestAddress,sizeof(ipAddr_t));
+  COAP_SendMsg(pMySession,  pMySessionPayload, pMyPayloadSize);
+  shell_write("'NON' packet sent 'POST' with payload: ");
+  shell_writeN((char*) pMySessionPayload, pMyPayloadSize);
+  shell_write("\r\n");
+}
+
+static void APP_CoapResource2Cb
+(
+coapSessionStatus_t sessionStatus,
+void *pData,
+coapSession_t *pSession,
+uint32_t dataLen
+)
+
+{
+  if (gCoapNonConfirmable_c == pSession->msgType)
+  {
+      shell_write("'NON' packet received 'POST' with payload: ");
+      shell_writeN(pData, dataLen);
+      shell_write("\r\n");
+  }
+}
+
+static void APP_CoapHouseIptoFGCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen)
+{
+	  static uint8_t pMySessionPayload[3]={0x31,0x32,0x33};
+	  static uint32_t pMyPayloadSize=3;
+	  coapSession_t *pMySession = NULL;
+	  pMySession = COAP_OpenSession(mAppCoapInstId);
+	  COAP_AddOptionToList(pMySession,COAP_URI_PATH_OPTION, APP_RESOURCE2_URI_PATH,SizeOfString(APP_RESOURCE2_URI_PATH));
+		if (gCoapConfirmable_c == pSession->msgType)
+	  {
+		if (gCoapGET_c == pSession->code)
+		{
+		  shell_write("'CON' packet received 'GET' with payload: ");
+		}
+		if (gCoapPOST_c == pSession->code)
+		{
+		  shell_write("'CON' packet received 'POST' with payload: ");
+		}
+		if (gCoapPUT_c == pSession->code)
+		{
+		  shell_write("'CON' packet received 'PUT' with payload: ");
+		}
+		if (gCoapFailure_c!=sessionStatus)
+		{
+		  COAP_Send(pSession, gCoapMsgTypeAckSuccessChanged_c, pMySessionPayload, pMyPayloadSize);
+		}
+	  }
+	houseIP.addr64[0] = pSession->remoteAddr.addr64[0];
+	houseIP.addr64[1] = pSession->remoteAddr.addr64[1];
+}
+static void APP_CoapHouseIptoParkingCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen)
+{
+	  static uint8_t pMySessionPayload[3]={0x31,0x32,0x33};
+	  static uint32_t pMyPayloadSize=3;
+	  coapSession_t *pMySession = NULL;
+	  pMySession = COAP_OpenSession(mAppCoapInstId);
+	  COAP_AddOptionToList(pMySession,COAP_URI_PATH_OPTION, APP_RESOURCE2_URI_PATH,SizeOfString(APP_RESOURCE2_URI_PATH));
+		if (gCoapConfirmable_c == pSession->msgType)
+	  {
+		if (gCoapGET_c == pSession->code)
+		{
+		  shell_write("'CON' packet received 'GET' with payload: ");
+		}
+		if (gCoapPOST_c == pSession->code)
+		{
+		  shell_write("'CON' packet received 'POST' with payload: ");
+		}
+		if (gCoapPUT_c == pSession->code)
+		{
+		  shell_write("'CON' packet received 'PUT' with payload: ");
+		}
+		if (gCoapFailure_c!=sessionStatus)
+		{
+		  COAP_Send(pSession, gCoapMsgTypeAckSuccessChanged_c, pMySessionPayload, pMyPayloadSize);
+		}
+	  }
+	houseIP.addr64[0] = pSession->remoteAddr.addr64[0];
+	houseIP.addr64[1] = pSession->remoteAddr.addr64[1];
+}
+
+//FrontGate Callbacks
+static void APP_CoapVisitedCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen)
+{
+    static uint8_t pMySessionPayload[VISITED_ACK_MSG_LENGTH]="Hello";
+    static uint32_t pMyPayloadSize=VISITED_ACK_MSG_LENGTH;
+    switch(frontGateStateMachine)
+    {
+    case idleFrontGateState:
+        if (gCoapConfirmable_c == pSession->msgType)
+        {
+            if (gCoapGET_c == pSession->code)
+            {
+              shell_write("You have been visited by: ");
+            }
+            if (gCoapPOST_c == pSession->code)
+            {
+              shell_write("You have been visited by: ");
+            }
+            if (gCoapPUT_c == pSession->code)
+            {
+              shell_write("You have been visited by : ");
+            }
+            shell_writeN(pData, dataLen);
+            shell_write("\r\n");
+
+            if (gCoapFailure_c!=sessionStatus)
+            {
+              COAP_Send(pSession, gCoapMsgTypeAckSuccessChanged_c, pMySessionPayload, pMyPayloadSize);
+            }
+        }
+        break;
+    case visitedFrontGateState:
+        // Do Nothing
+        break;
+    default:
+        // Do Nothing
+        break;
+    }
+
+
+
+}
+static void APP_CoapAcceptanceCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen)
+{
+
+    static uint8_t pMySessionPayload[VISITED_RESP_ACK_MSG_LENGTH]="Thanks";
+    static uint32_t pMyPayloadSize=VISITED_RESP_ACK_MSG_LENGTH;
+
+    coapSession_t *pMySession = NULL;
+    pMySession = COAP_OpenSession(mAppCoapInstId);
+    COAP_AddOptionToList(pMySession,COAP_URI_PATH_OPTION, APP_AVALIABLE_URI_PATH,SizeOfString(APP_AVALIABLE_URI_PATH));
+    ipAddr_t placeHolser;
+    uint8_t index = 0;
+
+    switch(frontGateStateMachine)
+    {
+    case idleFrontGateState:
+        if (gCoapConfirmable_c == pSession->msgType)
+        {
+            if (gCoapGET_c == pSession->code)
+            {
+              shell_write("The house says: ");
+            }
+            if (gCoapPOST_c == pSession->code)
+            {
+              shell_write("The house says: ");
+            }
+            if (gCoapPUT_c == pSession->code)
+            {
+              shell_write("The house says: ");
+            }
+            shell_writeN(pData, dataLen);
+            shell_write("\r\n");
+            if (gCoapFailure_c!=sessionStatus)
+            {
+              COAP_Send(pSession, gCoapMsgTypeAckSuccessChanged_c, pMySessionPayload, pMyPayloadSize);
+            }
+            if(('Y' == ((char*)pData)[0]) || ('y' == ((char*)pData)[0]))
+            {
+                frontGateStateMachine = visitedFrontGateState;
+                pMySession -> msgType=gCoapConfirmable_c;
+                pMySession -> code= gCoapGET_c;
+                pMySession -> pCallback =NULL;
+                for (index = 0; index < 16; index++)
+                {
+                    placeHolser.addr8[index] = gCoapDestAddress.addr8[index];
+                }
+                /*gCoapDestAddress at this point has the House addres, it has to be changes to Parking address*/
+                FLib_MemCpy(&pMySession->remoteAddr,&gCoapDestAddress,sizeof(ipAddr_t));
+                COAP_SendMsg(pMySession,  pMySessionPayload, pMyPayloadSize);
+                shell_write("'NON' packet sent 'GET' with payload: ");
+                shell_writeN((char*) pMySessionPayload, pMyPayloadSize);
+                shell_write("\r\n");
+            }
+        }
+        break;
+    case visitedFrontGateState:
+        // Do Nothing
+        break;
+    default:
+        // Do Nothing
+        break;
+    }
+}
+static void APP_CoapAvaliableParkingCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen)
+{
+
+
+}
+
+void APP_CoapLightoutsidehouseCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen)
+{
+    static uint8_t pMySessionPayload[LIGHTHOUSE_ACK_MSG_LENGTH]="LIGHTS_HOUSE_ON";
+    static uint32_t pMyPayloadSize=LIGHTHOUSE_ACK_MSG_LENGTH;
+
+    {
+
+        if (gCoapConfirmable_c == pSession->msgType)
+        {
+            if (gCoapGET_c == pSession->code)
+            {
+              shell_write("Visitor is arriving: ");
+            }
+            if (gCoapPOST_c == pSession->code)
+            {
+              shell_write("Visitor is arriving: ");
+            }
+            if (gCoapPUT_c == pSession->code)
+            {
+              shell_write("Visitor is arriving : ");
+            }
+            shell_writeN(pData, dataLen);
+            shell_write("\r\n");
+
+            if (mFirstPushButtonPressed)
+            	{
+            	mFirstPushButtonPressed = FALSE;
+            	}
+
+            if (gCoapFailure_c!=sessionStatus)
+            {
+              COAP_Send(pSession, gCoapMsgTypeAckSuccessChanged_c, pMySessionPayload, pMyPayloadSize);
+              (void)NWKU_SendMsg(APP_SendLedRgbOn, NULL, mpAppThreadMsgQueue);
+            }
+
+        }
+
+    }
+
+
+}
+static void APP_CoapLightparkingCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen)
+{
+
+}
+static void APP_CoapGuestleavingCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen)
+{
+
+}
+
+
+static void APP_CoapFGIptoHouseCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen)
+{
+	  static uint8_t pMySessionPayload[3]={0x31,0x32,0x33};
+	  static uint32_t pMyPayloadSize=3;
+	  coapSession_t *pMySession = NULL;
+	  pMySession = COAP_OpenSession(mAppCoapInstId);
+	  COAP_AddOptionToList(pMySession,COAP_URI_PATH_OPTION, APP_RESOURCE2_URI_PATH,SizeOfString(APP_RESOURCE2_URI_PATH));
+		if (gCoapConfirmable_c == pSession->msgType)
+	  {
+		if (gCoapGET_c == pSession->code)
+		{
+		  shell_write("'CON' packet received 'GET' with payload: ");
+		}
+		if (gCoapPOST_c == pSession->code)
+		{
+		  shell_write("'CON' packet received 'POST' with payload: ");
+		}
+		if (gCoapPUT_c == pSession->code)
+		{
+		  shell_write("'CON' packet received 'PUT' with payload: ");
+		}
+		if (gCoapFailure_c!=sessionStatus)
+		{
+		  COAP_Send(pSession, gCoapMsgTypeAckSuccessChanged_c, pMySessionPayload, pMyPayloadSize);
+		}
+	  }
+	frontGateIP.addr64[0] = pSession->remoteAddr.addr64[0];
+	frontGateIP.addr64[1] = pSession->remoteAddr.addr64[1];
+}
+static void APP_CoapFGIptoParkingCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen)
+{
+	  static uint8_t pMySessionPayload[3]={0x31,0x32,0x33};
+	  static uint32_t pMyPayloadSize=3;
+	  coapSession_t *pMySession = NULL;
+	  pMySession = COAP_OpenSession(mAppCoapInstId);
+	  COAP_AddOptionToList(pMySession,COAP_URI_PATH_OPTION, APP_RESOURCE2_URI_PATH,SizeOfString(APP_RESOURCE2_URI_PATH));
+		if (gCoapConfirmable_c == pSession->msgType)
+	  {
+		if (gCoapGET_c == pSession->code)
+		{
+		  shell_write("'CON' packet received 'GET' with payload: ");
+		}
+		if (gCoapPOST_c == pSession->code)
+		{
+		  shell_write("'CON' packet received 'POST' with payload: ");
+		}
+		if (gCoapPUT_c == pSession->code)
+		{
+		  shell_write("'CON' packet received 'PUT' with payload: ");
+		}
+		if (gCoapFailure_c!=sessionStatus)
+		{
+		  COAP_Send(pSession, gCoapMsgTypeAckSuccessChanged_c, pMySessionPayload, pMyPayloadSize);
+		}
+	  }
+	frontGateIP.addr64[0] = pSession->remoteAddr.addr64[0];
+	frontGateIP.addr64[1] = pSession->remoteAddr.addr64[1];
+}
+
+static void APP_CoapParkingIptoFGCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen)
+{
+	  static uint8_t pMySessionPayload[3]={0x31,0x32,0x33};
+	  static uint32_t pMyPayloadSize=3;
+	  coapSession_t *pMySession = NULL;
+	  pMySession = COAP_OpenSession(mAppCoapInstId);
+	  COAP_AddOptionToList(pMySession,COAP_URI_PATH_OPTION, APP_RESOURCE2_URI_PATH,SizeOfString(APP_RESOURCE2_URI_PATH));
+		if (gCoapConfirmable_c == pSession->msgType)
+	  {
+		if (gCoapGET_c == pSession->code)
+		{
+		  shell_write("'CON' packet received 'GET' with payload: ");
+		}
+		if (gCoapPOST_c == pSession->code)
+		{
+		  shell_write("'CON' packet received 'POST' with payload: ");
+		}
+		if (gCoapPUT_c == pSession->code)
+		{
+		  shell_write("'CON' packet received 'PUT' with payload: ");
+		}
+		if (gCoapFailure_c!=sessionStatus)
+		{
+		  COAP_Send(pSession, gCoapMsgTypeAckSuccessChanged_c, pMySessionPayload, pMyPayloadSize);
+		}
+	  }
+	parkingIP.addr64[0] = pSession->remoteAddr.addr64[0];
+	parkingIP.addr64[1] = pSession->remoteAddr.addr64[1];
+}
+static void APP_CoapParkingIptoHouseCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen)
+{
+	  static uint8_t pMySessionPayload[3]={0x31,0x32,0x33};
+	  static uint32_t pMyPayloadSize=3;
+	  coapSession_t *pMySession = NULL;
+	  pMySession = COAP_OpenSession(mAppCoapInstId);
+	  COAP_AddOptionToList(pMySession,COAP_URI_PATH_OPTION, APP_RESOURCE2_URI_PATH,SizeOfString(APP_RESOURCE2_URI_PATH));
+		if (gCoapConfirmable_c == pSession->msgType)
+	  {
+		if (gCoapGET_c == pSession->code)
+		{
+		  shell_write("'CON' packet received 'GET' with payload: ");
+		}
+		if (gCoapPOST_c == pSession->code)
+		{
+		  shell_write("'CON' packet received 'POST' with payload: ");
+		}
+		if (gCoapPUT_c == pSession->code)
+		{
+		  shell_write("'CON' packet received 'PUT' with payload: ");
+		}
+		if (gCoapFailure_c!=sessionStatus)
+		{
+		  COAP_Send(pSession, gCoapMsgTypeAckSuccessChanged_c, pMySessionPayload, pMyPayloadSize);
+		}
+	  }
+	parkingIP.addr64[0] = pSession->remoteAddr.addr64[0];
+	parkingIP.addr64[1] = pSession->remoteAddr.addr64[1];
+}
+
+
 void Stack_to_APP_Handler
 (
     void *param
@@ -499,7 +992,29 @@ static void APP_InitCoapDemo
 {
     coapRegCbParams_t cbParams[] =  {{APP_CoapLedCb,  (coapUriPath_t *)&gAPP_LED_URI_PATH},
                                      {APP_CoapTempCb, (coapUriPath_t *)&gAPP_TEMP_URI_PATH},
-#if LARGE_NETWORK
+//Registration of the callbacks
+
+{APP_CoapResource1Cb, (coapUriPath_t*)&gAPP_RESOURCE1_URI_PATH},
+{APP_CoapResource2Cb, (coapUriPath_t*)&gAPP_RESOURCE2_URI_PATH},
+// Frontgate
+{APP_CoapVisitedCb, (coapUriPath_t*)&gAPP_VISITED_URI_PATH},
+{APP_CoapAcceptanceCb, (coapUriPath_t*)&gAPP_ACCEPTANCE_URI_PATH},
+{APP_CoapAvaliableParkingCb, (coapUriPath_t*)&gAPP_AVALIABLE_URI_PATH},
+//Parking
+{APP_CoapLightoutsidehouseCb, (coapUriPath_t*)&gAPP_LIGHTHOUSE_URI_PATH},
+{APP_CoapLightparkingCb, (coapUriPath_t*)&gAPP_LIGHTPARKING_URI_PATH},
+{APP_CoapGuestleavingCb, (coapUriPath_t*)&gAPP_GUESTLEAVING_URI_PATH},
+
+
+{APP_CoapHouseIptoFGCb, (coapUriPath_t*)&gAPP_HOUSEIP2FG_URI_PATH},
+{APP_CoapHouseIptoParkingCb, (coapUriPath_t*)&gAPP_HOUSEIP2PK_URI_PATH},
+{APP_CoapFGIptoHouseCb, (coapUriPath_t*)&gAPP_FGIP2HOUSE_URI_PATH},
+{APP_CoapFGIptoParkingCb, (coapUriPath_t*)&gAPP_FGIP2PK_URI_PATH},
+{APP_CoapParkingIptoFGCb, (coapUriPath_t*)&gAPP_PKIP2FG_URI_PATH},
+{APP_CoapParkingIptoHouseCb, (coapUriPath_t*)&gAPP_PKIP2HOUSE_URI_PATH},
+
+
+									 #if LARGE_NETWORK
                                      {APP_CoapResetToFactoryDefaultsCb, (coapUriPath_t *)&gAPP_RESET_URI_PATH},
 #endif
                                      {APP_CoapSinkCb, (coapUriPath_t *)&gAPP_SINK_URI_PATH}};
@@ -1042,13 +1557,14 @@ static void APP_SendLedRgbOn
     uint8_t redValue, greenValue, blueValue;
 
     /* Red value on: 0x01 - 0xFF */
-    redValue = (uint8_t)NWKU_GetRandomNoFromInterval(0x01, THR_ALL_FFs8);
-
+    /*redValue = (uint8_t)NWKU_GetRandomNoFromInterval(0x01, THR_ALL_FFs8);*/
+    redValue = 0XFF;
     /* Green value on: 0x01 - 0xFF */
-    greenValue = (uint8_t)NWKU_GetRandomNoFromInterval(0x01, THR_ALL_FFs8);
-
+    /*greenValue = (uint8_t)NWKU_GetRandomNoFromInterval(0x01, THR_ALL_FFs8);*/
+    greenValue = 0xFF;
     /* Blue value on: 0x01 - 0xFF */
-    blueValue = (uint8_t)NWKU_GetRandomNoFromInterval(0x01, THR_ALL_FFs8);
+    /*blueValue = (uint8_t)NWKU_GetRandomNoFromInterval(0x01, THR_ALL_FFs8);*/
+    blueValue = 0xFF;
 
     NWKU_PrintDec(redValue, aCommand + 5, 3, TRUE);     //aCommand + strlen("rgb r")
     NWKU_PrintDec(greenValue, aCommand + 10, 3, TRUE);  //aCommand + strlen("rgb r000 g")

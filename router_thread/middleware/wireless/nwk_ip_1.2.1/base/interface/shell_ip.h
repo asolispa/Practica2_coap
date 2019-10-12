@@ -87,6 +87,14 @@ extern uint32_t __stop_SHELL_COMMANDS;
     #warning shell command will not be stored!
 #endif
 
+
+#define APP_HOUSEIP2FG_URI_PATH                       "/houseiptofg"
+#define APP_HOUSEIP2PK_URI_PATH                       "/houseiptopk"
+#define APP_FGIP2HOUSE_URI_PATH                       "/fgiptohouse"
+#define APP_FGIP2PK_URI_PATH                          "/fgiptopk"
+#define APP_PKIP2FG_URI_PATH                          "/pkiptofg"
+#define APP_PKIP2HOUSE_URI_PATH                       "/pkiptohouse"
+
 /*==================================================================================================
 Public type definitions
 ==================================================================================================*/
