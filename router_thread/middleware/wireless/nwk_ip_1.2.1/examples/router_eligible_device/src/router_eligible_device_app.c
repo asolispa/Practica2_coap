@@ -103,8 +103,8 @@ Private macros
 #define APP_RESOURCE1_URI_PATH                       "/resource1"
 #define APP_RESOURCE2_URI_PATH                       "/resource2"
 // FRONTGATE
-#define APP_VISITED_URI_PATH                    "/visited"
-#define APP_ACCEPTANCE_URI_PATH                 "/acceptance"
+/*#define APP_VISITED_URI_PATH                    "/visited"
+#define APP_ACCEPTANCE_URI_PATH                 "/acceptance"*/
 #define APP_AVALIABLE_URI_PATH                  "/avaliable"
 // PARKING
 #define APP_LIGHTHOUSE_URI_PATH                 "/lighthouse"
@@ -134,9 +134,9 @@ static bool_t mJoiningIsAppInitiated = FALSE;
 
 static frontGateStateMachine_T frontGateStateMachine  = idleFrontGateState;
 
-static ipAddr_t houseIP = {0};
-static ipAddr_t parkingIP = {0};
-static ipAddr_t frontGateIP = {0};
+extern ipAddr_t houseIP = {0};
+extern ipAddr_t parkingIP = {0};
+extern ipAddr_t frontGateIP = {0};
 
 /*==================================================================================================
 Private prototypes
@@ -520,6 +520,8 @@ static void APP_CoapHouseIptoParkingCb(coapSessionStatus_t sessionStatus, void *
 	houseIP.addr64[0] = pSession->remoteAddr.addr64[0];
 	houseIP.addr64[1] = pSession->remoteAddr.addr64[1];
 }
+
+
 
 //FrontGate Callbacks
 static void APP_CoapVisitedCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen)
