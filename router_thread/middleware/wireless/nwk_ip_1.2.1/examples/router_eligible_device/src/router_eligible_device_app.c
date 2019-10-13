@@ -150,6 +150,7 @@ static void APP_SendDataSinkCreate(void *pParam);
 static void APP_SendDataSinkRelease(void *pParam);
 #if gKBD_KeysCount_c > 1
 static void APP_SendLedRgbOn(void *pParam);
+static void APP_SendLedRgbOnLightHouse(void *pParam);
 static void APP_SendLedRgbOff(void *pParam);
 static void APP_SendLedFlash(void *pParam);
 static void APP_SendLedColorWheel(void *pParam);
@@ -739,7 +740,7 @@ void APP_CoapLightoutsidehouseCb(coapSessionStatus_t sessionStatus, void *pData,
             if (gCoapFailure_c!=sessionStatus)
             {
               COAP_Send(pSession, gCoapMsgTypeAckSuccessChanged_c, pMySessionPayload, pMyPayloadSize);
-              (void)NWKU_SendMsg(APP_SendLedRgbOn, NULL, mpAppThreadMsgQueue);
+              (void)NWKU_SendMsg(APP_SendLedRgbOnLightHouse, NULL, mpAppThreadMsgQueue);
             }
 
         }
@@ -1616,7 +1617,51 @@ static void APP_SendLedCommand
         APP_ProcessLedCmd(pCommand, dataLen);
     }
 }
+/*!*************************************************************************************************
+\private
+\fn     static void APP_SendLedCommand(uint8_t *pCommand, uint8_t dataLen)
+\brief  This function is used to send a Led command to gCoapDestAddress.
 
+\param  [in]    pCommand   Pointer to command data
+\param  [in]    dataLen    Data length
+***************************************************************************************************/
+static void APP_SendLedCommandLightHouse
+(
+    uint8_t *pCommand,
+    uint8_t dataLen
+)
+{
+    ifHandle_t ifHandle = THR_GetIpIfPtrByInstId(mThrInstanceId);
+
+    if(!IP_IF_IsMyAddr(ifHandle->ifUniqueId, &houseIP))
+    {
+        coapSession_t *pSession = COAP_OpenSession(mAppCoapInstId);
+
+        if(pSession)
+        {
+            coapMsgTypesAndCodes_t coapMessageType = gCoapMsgTypeNonPost_c;
+
+            pSession->pCallback = NULL;
+            FLib_MemCpy(&pSession->remoteAddr, &houseIP, sizeof(ipAddr_t));
+            COAP_SetUriPath(pSession,(coapUriPath_t *)&gAPP_LED_URI_PATH);
+
+            if(!IP6_IsMulticastAddr(&houseIP))
+            {
+                coapMessageType = gCoapMsgTypeConPost_c;
+                pSession->pCallback = APP_CoapGenericCallback;
+            }
+            else
+            {
+                APP_ProcessLedCmd(pCommand, dataLen);
+            }
+            COAP_Send(pSession, coapMessageType, pCommand, dataLen);
+        }
+    }
+    else
+    {
+        APP_ProcessLedCmd(pCommand, dataLen);
+    }
+}
 /*!*************************************************************************************************
 \private
 \fn     static void APP_SendLedRgbOn(void *pParam)
@@ -1625,6 +1670,37 @@ static void APP_SendLedCommand
 \param  [in]    pParam    Not used
 ***************************************************************************************************/
 static void APP_SendLedRgbOn
+(
+    void *pParam
+)
+{
+    uint8_t aCommand[] = {"rgb r000 g000 b000"};
+    uint8_t redValue, greenValue, blueValue;
+
+    /* Red value on: 0x01 - 0xFF */
+    redValue = (uint8_t)NWKU_GetRandomNoFromInterval(0x01, THR_ALL_FFs8);
+
+    /* Green value on: 0x01 - 0xFF */
+    greenValue = (uint8_t)NWKU_GetRandomNoFromInterval(0x01, THR_ALL_FFs8);
+
+    /* Blue value on: 0x01 - 0xFF */
+    blueValue = (uint8_t)NWKU_GetRandomNoFromInterval(0x01, THR_ALL_FFs8);
+
+
+    NWKU_PrintDec(redValue, aCommand + 5, 3, TRUE);     //aCommand + strlen("rgb r")
+    NWKU_PrintDec(greenValue, aCommand + 10, 3, TRUE);  //aCommand + strlen("rgb r000 g")
+    NWKU_PrintDec(blueValue, aCommand + 15, 3, TRUE);   //aCommand + strlen("rgb r000 g000 b")
+
+    APP_SendLedCommand(aCommand, sizeof(aCommand));
+}
+/*!*************************************************************************************************
+\private
+\fn     static void APP_SendLedRgbOn(void *pParam)
+\brief  This function is used to send a Led RGB On command over the air.
+
+\param  [in]    pParam    Not used
+***************************************************************************************************/
+static void APP_SendLedRgbOnLightHouse
 (
     void *pParam
 )
@@ -1646,8 +1722,10 @@ static void APP_SendLedRgbOn
     NWKU_PrintDec(greenValue, aCommand + 10, 3, TRUE);  //aCommand + strlen("rgb r000 g")
     NWKU_PrintDec(blueValue, aCommand + 15, 3, TRUE);   //aCommand + strlen("rgb r000 g000 b")
 
-    APP_SendLedCommand(aCommand, sizeof(aCommand));
+    APP_SendLedCommandLightHouse(aCommand, sizeof(aCommand));
 }
+
+
 
 /*!*************************************************************************************************
 \private
