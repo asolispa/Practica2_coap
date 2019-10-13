@@ -103,11 +103,11 @@ Private macros
 #define APP_RESOURCE1_URI_PATH                       "/resource1"
 #define APP_RESOURCE2_URI_PATH                       "/resource2"
 // FRONTGATE
-/*#define APP_VISITED_URI_PATH                    "/visited"
-#define APP_ACCEPTANCE_URI_PATH                 "/acceptance"*/
+/*#define APP_VISITED_URI_PATH                    "/visited"*/
+/*#define APP_ACCEPTANCE_URI_PATH                 "/acceptance"*/
 #define APP_AVALIABLE_URI_PATH                  "/avaliable"
 // PARKING
-#define APP_LIGHTHOUSE_URI_PATH                 "/lighthouse"
+/*#define APP_LIGHTHOUSE_URI_PATH                 "/lighthouse"*/
 #define APP_LIGHTPARKING_URI_PATH               "/lightparking"
 #define APP_GUESTLEAVING_URI_PATH               "/guestleaving"
 
