@@ -463,7 +463,7 @@ const cmd_tbl_t aShellCommands[] =
 #endif /* SHELL_USE_AUTO_COMPLETE */
     },
     {
-        "sendhouseiptofg", SHELL_CMD_MAX_ARGS, 0, SHELL_SendHouseIptoFGSend
+        "house2fg", SHELL_CMD_MAX_ARGS, 0, SHELL_SendHouseIptoFGSend
 #if SHELL_USE_HELP
     ,"Send CoAP message",
     "Send CoAP message\r\n"
@@ -476,7 +476,7 @@ const cmd_tbl_t aShellCommands[] =
 #endif /* SHELL_USE_AUTO_COMPLETE */
     },
     {
-        "sendhouseiptoparking", SHELL_CMD_MAX_ARGS, 0, SHELL_SendHouseIptoParkingSend
+        "house2pk", SHELL_CMD_MAX_ARGS, 0, SHELL_SendHouseIptoParkingSend
 #if SHELL_USE_HELP
     ,"Send CoAP message",
     "Send CoAP message\r\n"
@@ -489,7 +489,7 @@ const cmd_tbl_t aShellCommands[] =
 #endif /* SHELL_USE_AUTO_COMPLETE */
     },
     {
-        "sendfgiptohouse", SHELL_CMD_MAX_ARGS, 0, SHELL_SendFGIptoHouseSend
+        "fg2house", SHELL_CMD_MAX_ARGS, 0, SHELL_SendFGIptoHouseSend
 #if SHELL_USE_HELP
     ,"Send CoAP message",
     "Send CoAP message\r\n"
@@ -502,7 +502,7 @@ const cmd_tbl_t aShellCommands[] =
 #endif /* SHELL_USE_AUTO_COMPLETE */
     },
     {
-        "sendfgiptoparking", SHELL_CMD_MAX_ARGS, 0, SHELL_SendFGIptoParkingSend
+        "fg2pk", SHELL_CMD_MAX_ARGS, 0, SHELL_SendFGIptoParkingSend
 #if SHELL_USE_HELP
     ,"Send CoAP message",
     "Send CoAP message\r\n"
@@ -515,7 +515,7 @@ const cmd_tbl_t aShellCommands[] =
 #endif /* SHELL_USE_AUTO_COMPLETE */
     },
     {
-        "sendparkingiptohouse", SHELL_CMD_MAX_ARGS, 0, SHELL_SendParkingIptoHouseSend
+        "pk2house", SHELL_CMD_MAX_ARGS, 0, SHELL_SendParkingIptoHouseSend
 #if SHELL_USE_HELP
     ,"Send CoAP message",
     "Send CoAP message\r\n"
@@ -528,7 +528,7 @@ const cmd_tbl_t aShellCommands[] =
 #endif /* SHELL_USE_AUTO_COMPLETE */
     },
     {
-        "sendparkingiptofg", SHELL_CMD_MAX_ARGS, 0, SHELL_SendParkingIptoFGSend
+        "pk2fg", SHELL_CMD_MAX_ARGS, 0, SHELL_SendParkingIptoFGSend
 #if SHELL_USE_HELP
     ,"Send CoAP message",
     "Send CoAP message\r\n"
