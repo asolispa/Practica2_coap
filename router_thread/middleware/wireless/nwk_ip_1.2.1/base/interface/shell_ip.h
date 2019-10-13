@@ -94,6 +94,9 @@ extern uint32_t __stop_SHELL_COMMANDS;
 #define APP_FGIP2PK_URI_PATH                          "/fgiptopk"
 #define APP_PKIP2FG_URI_PATH                          "/pkiptofg"
 #define APP_PKIP2HOUSE_URI_PATH                       "/pkiptohouse"
+// FRONTGATE
+#define APP_VISITED_URI_PATH                    "/visited"
+#define APP_ACCEPTANCE_URI_PATH                 "/acceptance"
 
 /*==================================================================================================
 Public type definitions
