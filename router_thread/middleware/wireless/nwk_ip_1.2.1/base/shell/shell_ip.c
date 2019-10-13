@@ -4669,21 +4669,21 @@ static int8_t SHELL_SendVisitedName(uint8_t argc, char *argv [])
         if(NULL != pCoapSession)
         {
             /* Get destination address */
-            pton(AF_INET6,argv[1], &houseIP);
+            //pton(AF_INET6,argv[1], &houseIP);
 
             /* Get URI path */
             COAP_AddOptionToList(pCoapSession, COAP_URI_PATH_OPTION, APP_VISITED_URI_PATH,SizeOfString(APP_VISITED_URI_PATH));
 
             /* Get payload */
-            if(argc >= 2)
+            //if(argc >= 2)
             {
-                pValue = argv[2];
+                pValue = argv[1];
 
                 if(pValue)
                 {
                     coapPayloadSize = strlen(pValue);
 
-                    if(!strcmp(argv[2], "rgb"))
+                    if(!strcmp(argv[1], "rgb"))
                     {
                         coapPayloadSize += strlen(argv[3]) + strlen(argv[4]) + strlen(argv[5]) + 4;
                     }
@@ -4742,21 +4742,21 @@ static int8_t SHELL_SendHouseAnswertoFG(uint8_t argc, char *argv [])
         if(NULL != pCoapSession)
         {
             /* Get destination address */
-            pton(AF_INET6,argv[1], &frontGateIP);
+            //pton(AF_INET6,argv[1], &frontGateIP);
 
             /* Get URI path */
             COAP_AddOptionToList(pCoapSession, COAP_URI_PATH_OPTION, APP_ACCEPTANCE_URI_PATH,SizeOfString(APP_ACCEPTANCE_URI_PATH));
 
             /* Get payload */
-            if(argc >= 2)
+            //if(argc >= 2)
             {
-                pValue = argv[2];
+                pValue = argv[1];
 
                 if(pValue)
                 {
                     coapPayloadSize = strlen(pValue);
 
-                    if(!strcmp(argv[2], "rgb"))
+                    if(!strcmp(argv[1], "rgb"))
                     {
                         coapPayloadSize += strlen(argv[3]) + strlen(argv[4]) + strlen(argv[5]) + 4;
                     }
