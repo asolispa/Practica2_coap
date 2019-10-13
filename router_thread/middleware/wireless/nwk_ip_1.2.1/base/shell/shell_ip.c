@@ -192,6 +192,7 @@ Private prototypes
 extern ipAddr_t houseIP = {0};
 extern ipAddr_t parkingIP = {0};
 extern ipAddr_t frontGateIP = {0};
+extern housetateMachine_T houseStateMachine;
 
 static void SHELL_Resume(void);
 static int8_t SHELL_Reboot(uint8_t argc, char *argv[]);
@@ -237,6 +238,7 @@ static int8_t SHELL_SendParkingIptoHouseSend(uint8_t argc, char *argv []);
 static int8_t SHELL_SendVisitedName(uint8_t argc, char *argv []);
 static int8_t SHELL_SendHouseAnswertoFG(uint8_t argc, char *argv []);
 static void SHELL_CoapAckReceive(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
+static void SHELL_AcceptanceAckReceive(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
 
 
 /* Ping functions */
@@ -4022,6 +4024,56 @@ static void SHELL_CoapAckReceive
 
 /*!*************************************************************************************************
 \private
+\fn     void SHELL_CoapAckReceive(coapSessionStatus_t sessionStatus, void *pData,
+                                  coapSession_t *pSession, uint32_t dataLen)
+\brief  This function is the callback function for the COAP ACK message.
+
+\param  [in]    sessionStatus    Status of the session
+\param  [in]    pData            Pointer to data
+\param  [in]    pSession         Pointer to CoAP session
+\param  [in]    dataLen          Length of data
+***************************************************************************************************/
+static void SHELL_AcceptanceAckReceive
+(
+    coapSessionStatus_t sessionStatus,
+    void *pData,
+    coapSession_t *pSession,
+    uint32_t dataLen
+)
+{
+    char remoteAddrStr[INET6_ADDRSTRLEN];
+    uint8_t temp[10];
+
+    if(gCoapSuccess_c == sessionStatus)
+    {
+        ntop(AF_INET6, &pSession->remoteAddr, remoteAddrStr, INET6_ADDRSTRLEN);
+        /* coap rsp from <IP addr>: <ACK> <rspcode: X.XX> <payload ASCII> */
+        shell_printf("coap rsp from ");
+        shell_printf(remoteAddrStr);
+
+        if (gCoapAcknowledgement_c == pSession->msgType)
+        {
+            shell_printf(" ACK ");
+            houseStateMachine = idlehouseState;
+        }
+
+        if(0 != dataLen)
+        {
+            temp[dataLen]='\0';
+            FLib_MemCpy(temp, pData, dataLen);
+            shell_printf((char *)temp);
+        }
+    }
+    else
+    {
+        shell_printf("No response received!");
+    }
+    SHELL_Resume();
+}
+
+
+/*!*************************************************************************************************
+\private
 \fn     static int8_t  SHELL_Ping(uint8_t argc, char *argv[])
 \brief  This function is used for "ping" shell command.
 
@@ -4773,7 +4825,7 @@ static int8_t SHELL_SendHouseAnswertoFG(uint8_t argc, char *argv [])
             FLib_MemCpy(&pCoapSession->remoteAddr, &frontGateIP, sizeof(ipAddr_t));
             pCoapSession->code = requestCode;
             pCoapSession->msgType = requestType;
-            pCoapSession->pCallback = SHELL_CoapAckReceive;
+            pCoapSession->pCallback = SHELL_AcceptanceAckReceive;
             COAP_SendMsg(pCoapSession, pCoapPayload, coapPayloadSize);
 
             MEM_BufferFree(pCoapPayload);

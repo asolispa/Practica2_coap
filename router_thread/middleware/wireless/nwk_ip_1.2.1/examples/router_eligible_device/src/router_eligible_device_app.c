@@ -133,6 +133,7 @@ static bool_t mFirstPushButtonPressed = FALSE;
 static bool_t mJoiningIsAppInitiated = FALSE;
 
 static frontGateStateMachine_T frontGateStateMachine  = idleFrontGateState;
+extern housetateMachine_T houseStateMachine  = idlehouseState;
 
 extern ipAddr_t houseIP = {0};
 extern ipAddr_t parkingIP = {0};
@@ -528,9 +529,9 @@ static void APP_CoapVisitedCb(coapSessionStatus_t sessionStatus, void *pData, co
 {
     static uint8_t pMySessionPayload[VISITED_ACK_MSG_LENGTH]="Hello";
     static uint32_t pMyPayloadSize=VISITED_ACK_MSG_LENGTH;
-    switch(frontGateStateMachine)
+    switch(houseStateMachine)
     {
-    case idleFrontGateState:
+    case idlehouseState:
         if (gCoapConfirmable_c == pSession->msgType)
         {
             if (gCoapGET_c == pSession->code)
@@ -552,9 +553,10 @@ static void APP_CoapVisitedCb(coapSessionStatus_t sessionStatus, void *pData, co
             {
               COAP_Send(pSession, gCoapMsgTypeAckSuccessChanged_c, pMySessionPayload, pMyPayloadSize);
             }
+            houseStateMachine = visitedhouseState;
         }
         break;
-    case visitedFrontGateState:
+    case visitedhouseState:
         // Do Nothing
         break;
     default:

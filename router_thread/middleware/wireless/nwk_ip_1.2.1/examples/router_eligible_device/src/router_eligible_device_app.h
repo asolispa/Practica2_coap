@@ -57,6 +57,8 @@ typedef enum
     visitedFrontGateState
 
 } frontGateStateMachine_T;
+
+
 /* None */
 
 /*==================================================================================================

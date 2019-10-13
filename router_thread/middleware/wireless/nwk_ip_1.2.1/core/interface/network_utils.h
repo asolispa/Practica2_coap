@@ -551,6 +551,13 @@ typedef union ipAddr_tag
     uint64_t    addr64[2];           /*!< 64bit array */
 } ipAddr_t;
 
+typedef enum
+{
+    idlehouseState = 0,
+    visitedhouseState
+
+} housetateMachine_T;
+
 /*! Generic structure for holding buffer information */
 typedef struct nwkBuffer_tag
 {
