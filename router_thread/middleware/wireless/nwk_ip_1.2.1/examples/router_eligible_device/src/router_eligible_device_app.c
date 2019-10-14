@@ -693,6 +693,7 @@ static void APP_CoapAvaliableParkingCb(coapSessionStatus_t sessionStatus, void *
 
     if(gCoapConfirmable_c == pSession->msgType)
     {
+    	frontGateStateMachine  = idleFrontGateState;
         if(gCoapGET_c == pSession->code)
         {
         	placeHolder = pSlots[0];
