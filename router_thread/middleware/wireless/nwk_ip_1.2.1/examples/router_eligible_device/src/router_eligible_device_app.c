@@ -63,6 +63,8 @@ Include Files
 #include "app_temp_sensor.h"
 #include "coap.h"
 #include "app_socket_utils.h"
+#include "board.h"
+#include "LED.h"
 #if THR_ENABLE_EVENT_MONITORING
 #include "app_event_monitoring.h"
 #endif
@@ -108,7 +110,7 @@ Private macros
 #define APP_AVALIABLE_URI_PATH                  "/avaliable"
 // PARKING
 /*#define APP_LIGHTHOUSE_URI_PATH                 "/lighthouse"*/
-#define APP_LIGHTPARKING_URI_PATH               "/lightparking"
+/*#define APP_LIGHTPARKING_URI_PATH               "/lightparking"*/
 #define APP_GUESTLEAVING_URI_PATH               "/guestleaving"
 
 
@@ -712,6 +714,7 @@ void APP_CoapLightoutsidehouseCb(coapSessionStatus_t sessionStatus, void *pData,
 {
     static uint8_t pMySessionPayload[LIGHTHOUSE_ACK_MSG_LENGTH]="LIGHTS_HOUSE_ON";
     static uint32_t pMyPayloadSize=LIGHTHOUSE_ACK_MSG_LENGTH;
+	LED_Init();
 
     {
 
@@ -731,16 +734,12 @@ void APP_CoapLightoutsidehouseCb(coapSessionStatus_t sessionStatus, void *pData,
             }
             shell_writeN(pData, dataLen);
             shell_write("\r\n");
-
-            if (mFirstPushButtonPressed)
-            	{
-            	mFirstPushButtonPressed = FALSE;
-            	}
-
+			LED_TurnOnLed(1); /* RED */
+			LED_TurnOnLed(4); /* BLUE */
+			LED_TurnOnLed(2); /* GREEN */
             if (gCoapFailure_c!=sessionStatus)
             {
               COAP_Send(pSession, gCoapMsgTypeAckSuccessChanged_c, pMySessionPayload, pMyPayloadSize);
-              (void)NWKU_SendMsg(APP_SendLedRgbOnLightHouse, NULL, mpAppThreadMsgQueue);
             }
 
         }
@@ -751,7 +750,10 @@ void APP_CoapLightoutsidehouseCb(coapSessionStatus_t sessionStatus, void *pData,
 }
 static void APP_CoapLightparkingCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen)
 {
-
+	LED_Init();
+	LED_TurnOnLed(1); /* RED */
+	LED_TurnOnLed(4); /* BLUE */
+	LED_TurnOnLed(2); /* GREEN */
 }
 static void APP_CoapGuestleavingCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen)
 {

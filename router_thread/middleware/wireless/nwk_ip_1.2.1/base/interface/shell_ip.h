@@ -99,7 +99,7 @@ extern uint32_t __stop_SHELL_COMMANDS;
 #define APP_ACCEPTANCE_URI_PATH                 "/acceptance"
 // PARKING
 #define APP_LIGHTHOUSE_URI_PATH                 "/lighthouse"
-
+#define APP_LIGHTPARKING_URI_PATH               "/lightparking"
 /*==================================================================================================
 Public type definitions
 ==================================================================================================*/
