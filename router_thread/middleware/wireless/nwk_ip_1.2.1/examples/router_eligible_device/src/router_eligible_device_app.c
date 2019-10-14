@@ -187,6 +187,9 @@ static void APP_CoapFGIptoParkingCb(coapSessionStatus_t sessionStatus, void *pDa
 static void APP_CoapParkingIptoFGCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
 static void APP_CoapParkingIptoHouseCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
 
+static uint8_t pSlots[1]="5";
+static uint8_t noPlacesStr[]="No_places_available_go_to_host_house";
+
 
 #if LARGE_NETWORK
 static void APP_CoapResetToFactoryDefaultsCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen);
@@ -662,8 +665,6 @@ static void APP_CoapAvaliableParkingCb(coapSessionStatus_t sessionStatus, void *
 	uint8_t* pIndex = NULL;
     uint8_t *pTempString = MEM_BufferAlloc(10);
     uint32_t ackPloadSize = 0;
-    static uint8_t pSlots[1]="5";
-    static uint8_t noPlacesStr[]="No_places,_go_to_host_house";
     uint8_t placeHolder = 0;
     static uint32_t pSlotsSize=1;
 
@@ -776,8 +777,6 @@ static void APP_CoapGuestleavingCb(coapSessionStatus_t sessionStatus, void *pDat
 		uint8_t* pIndex = NULL;
 	    uint8_t *pTempString = MEM_BufferAlloc(10);
 	    uint32_t ackPloadSize = 0;
-	    static uint8_t pSlots[1]="5";
-	    static uint8_t noPlacesStr[]="No_places_by_the_moment";
 	    uint8_t placeHolder = 0;
 	    static uint32_t pSlotsSize=1;
 
