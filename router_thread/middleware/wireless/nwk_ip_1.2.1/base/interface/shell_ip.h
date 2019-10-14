@@ -97,6 +97,7 @@ extern uint32_t __stop_SHELL_COMMANDS;
 // FRONTGATE
 #define APP_VISITED_URI_PATH                    "/visited"
 #define APP_ACCEPTANCE_URI_PATH                 "/acceptance"
+#define APP_GUESTLEAVING_URI_PATH               "/guestleaving"
 
 /*==================================================================================================
 Public type definitions

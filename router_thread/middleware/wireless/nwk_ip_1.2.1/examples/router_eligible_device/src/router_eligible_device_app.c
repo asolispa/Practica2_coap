@@ -109,7 +109,7 @@ Private macros
 // PARKING
 #define APP_LIGHTHOUSE_URI_PATH                 "/lighthouse"
 #define APP_LIGHTPARKING_URI_PATH               "/lightparking"
-#define APP_GUESTLEAVING_URI_PATH               "/guestleaving"
+
 
 
 
