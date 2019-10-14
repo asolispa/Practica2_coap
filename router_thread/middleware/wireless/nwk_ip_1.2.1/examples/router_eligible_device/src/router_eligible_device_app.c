@@ -660,8 +660,10 @@ static void APP_CoapAvaliableParkingCb(coapSessionStatus_t sessionStatus, void *
 	uint8_t* pIndex = NULL;
     uint8_t *pTempString = MEM_BufferAlloc(10);
     uint32_t ackPloadSize = 0;
-    static uint8_t pSlots[5]="11111";
-    static uint32_t pSlotsSize=5;
+    static uint8_t pSlots[1]="5";
+    static uint8_t noPlacesStr[]="No_places,_go_to_guest_house";
+    uint8_t placeHolder = 0;
+    static uint32_t pSlotsSize=1;
 
     /* Send CoAP ACK */
 #ifdef HUB
@@ -693,7 +695,18 @@ static void APP_CoapAvaliableParkingCb(coapSessionStatus_t sessionStatus, void *
     {
         if(gCoapGET_c == pSession->code)
         {
-            COAP_Send(pSession, gCoapMsgTypeAckSuccessChanged_c, &pSlots[0], pSlotsSize);
+        	placeHolder = pSlots[0];
+        	if('0'< placeHolder)
+        	{
+        		COAP_Send(pSession, gCoapMsgTypeAckSuccessChanged_c, &pSlots[0], pSlotsSize);
+        		placeHolder--;
+        		pSlots[0] = placeHolder;
+        	}
+        	else
+        	{
+        		COAP_Send(pSession, gCoapMsgTypeAckSuccessChanged_c, &noPlacesStr[0], sizeof(noPlacesStr));
+        	}
+
         }
         else
         {
