@@ -570,6 +570,7 @@ static void APP_CoapVisitedCb(coapSessionStatus_t sessionStatus, void *pData, co
 
 static void APP_CoapGetParkingCallback(coapSessionStatus_t sessionStatus,void *pData,coapSession_t *pSession,uint32_t dataLen)
 {
+	frontGateStateMachine  = idleFrontGateState;
     shell_writeN(pData, dataLen);
     shell_write("\r\n");
 }
@@ -693,7 +694,7 @@ static void APP_CoapAvaliableParkingCb(coapSessionStatus_t sessionStatus, void *
 
     if(gCoapConfirmable_c == pSession->msgType)
     {
-    	frontGateStateMachine  = idleFrontGateState;
+
         if(gCoapGET_c == pSession->code)
         {
         	placeHolder = pSlots[0];
