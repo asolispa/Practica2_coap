@@ -855,7 +855,7 @@ static void APP_CoapGuestleavingCb(coapSessionStatus_t sessionStatus, void *pDat
 	        if(gCoapPOST_c == pSession->code)
 	        {
 	        	placeHolder = pSlots[0];
-	        	if(placeHolder <= '5')
+	        	if(placeHolder < '5')
 	        	{
 	        		COAP_Send(pSession, gCoapMsgTypeAckSuccessChanged_c, &pSlots[0], pSlotsSize);
 	        		placeHolder++;
