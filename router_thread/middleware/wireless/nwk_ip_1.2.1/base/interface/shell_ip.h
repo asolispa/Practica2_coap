@@ -98,6 +98,10 @@ extern uint32_t __stop_SHELL_COMMANDS;
 #define APP_VISITED_URI_PATH                    "/visited"
 #define APP_ACCEPTANCE_URI_PATH                 "/acceptance"
 #define APP_GUESTLEAVING_URI_PATH               "/guestleaving"
+// PARKING
+#define APP_LIGHTHOUSE_URI_PATH                 "/lighthouse"
+// HOUSE
+#define APP_LIGHTPARKING_URI_PATH               "/lightparking"
 
 /*==================================================================================================
 Public type definitions

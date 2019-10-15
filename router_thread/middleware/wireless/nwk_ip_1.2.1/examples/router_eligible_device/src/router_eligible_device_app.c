@@ -63,6 +63,9 @@ Include Files
 #include "app_temp_sensor.h"
 #include "coap.h"
 #include "app_socket_utils.h"
+#include "board.h"
+#include "LED.h"
+
 #if THR_ENABLE_EVENT_MONITORING
 #include "app_event_monitoring.h"
 #endif
@@ -103,12 +106,12 @@ Private macros
 #define APP_RESOURCE1_URI_PATH                       "/resource1"
 #define APP_RESOURCE2_URI_PATH                       "/resource2"
 // FRONTGATE
-/*#define APP_VISITED_URI_PATH                    "/visited"
-#define APP_ACCEPTANCE_URI_PATH                 "/acceptance"*/
+/*#define APP_VISITED_URI_PATH                    "/visited"*/
+/*#define APP_ACCEPTANCE_URI_PATH                 "/acceptance"*/
 #define APP_AVALIABLE_URI_PATH                  "/avaliable"
 // PARKING
-#define APP_LIGHTHOUSE_URI_PATH                 "/lighthouse"
-#define APP_LIGHTPARKING_URI_PATH               "/lightparking"
+/*#define APP_LIGHTHOUSE_URI_PATH                 "/lighthouse"*/
+/*#define APP_LIGHTPARKING_URI_PATH               "/lightparking"*/
 
 
 
@@ -667,6 +670,7 @@ static void APP_CoapAvaliableParkingCb(coapSessionStatus_t sessionStatus, void *
     uint32_t ackPloadSize = 0;
     uint8_t placeHolder = 0;
     static uint32_t pSlotsSize=1;
+    LED_Init();
 
     /* Send CoAP ACK */
 #ifdef HUB
@@ -705,6 +709,9 @@ static void APP_CoapAvaliableParkingCb(coapSessionStatus_t sessionStatus, void *
         		COAP_Send(pSession, gCoapMsgTypeAckSuccessChanged_c, &pSlots[0], pSlotsSize);
         		placeHolder--;
         		pSlots[0] = placeHolder;
+    			LED_TurnOnLed(1); /* RED */
+    			LED_TurnOnLed(4); /* BLUE */
+    			LED_TurnOnLed(2); /* GREEN */
         	}
         	else
         	{
@@ -730,7 +737,7 @@ void APP_CoapLightoutsidehouseCb(coapSessionStatus_t sessionStatus, void *pData,
 {
     static uint8_t pMySessionPayload[LIGHTHOUSE_ACK_MSG_LENGTH]="LIGHTS_HOUSE_ON";
     static uint32_t pMyPayloadSize=LIGHTHOUSE_ACK_MSG_LENGTH;
-
+    LED_Init();
     {
 
         if (gCoapConfirmable_c == pSession->msgType)
@@ -750,15 +757,14 @@ void APP_CoapLightoutsidehouseCb(coapSessionStatus_t sessionStatus, void *pData,
             shell_writeN(pData, dataLen);
             shell_write("\r\n");
 
-            if (mFirstPushButtonPressed)
-            	{
-            	mFirstPushButtonPressed = FALSE;
-            	}
+			LED_TurnOnLed(1); /* RED */
+			LED_TurnOnLed(4); /* BLUE */
+			LED_TurnOnLed(2); /* GREEN */
 
             if (gCoapFailure_c!=sessionStatus)
             {
               COAP_Send(pSession, gCoapMsgTypeAckSuccessChanged_c, pMySessionPayload, pMyPayloadSize);
-              (void)NWKU_SendMsg(APP_SendLedRgbOn, NULL, mpAppThreadMsgQueue);
+
             }
 
         }
@@ -769,8 +775,45 @@ void APP_CoapLightoutsidehouseCb(coapSessionStatus_t sessionStatus, void *pData,
 }
 static void APP_CoapLightparkingCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen)
 {
+    static uint8_t pMySessionPayload[PARKING_ACK_MSG_LENGTH]="TURN_LIGHTS_PARKING_OFF";
+    static uint32_t pMyPayloadSize=PARKING_ACK_MSG_LENGTH;
+    LED_Init();
+    {
+
+        if (gCoapConfirmable_c == pSession->msgType)
+        {
+            if (gCoapGET_c == pSession->code)
+            {
+              shell_write("Visitor is Leaving: ");
+            }
+            if (gCoapPOST_c == pSession->code)
+            {
+              shell_write("Visitor is Leaving: ");
+            }
+            if (gCoapPUT_c == pSession->code)
+            {
+              shell_write("Visitor is Leaving : ");
+            }
+            shell_writeN(pData, dataLen);
+            shell_write("\r\n");
+
+			LED_TurnOffLed(1); /* RED */
+			LED_TurnOffLed(4); /* BLUE */
+			LED_TurnOffLed(2); /* GREEN */
+
+            if (gCoapFailure_c!=sessionStatus)
+            {
+              COAP_Send(pSession, gCoapMsgTypeAckSuccessChanged_c, pMySessionPayload, pMyPayloadSize);
+
+            }
+
+        }
+
+    }
+
 
 }
+
 static void APP_CoapGuestleavingCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen)
 {
 
@@ -812,7 +855,7 @@ static void APP_CoapGuestleavingCb(coapSessionStatus_t sessionStatus, void *pDat
 	        if(gCoapPOST_c == pSession->code)
 	        {
 	        	placeHolder = pSlots[0];
-	        	if('0'< placeHolder)
+	        	if(placeHolder <= '5')
 	        	{
 	        		COAP_Send(pSession, gCoapMsgTypeAckSuccessChanged_c, &pSlots[0], pSlotsSize);
 	        		placeHolder++;

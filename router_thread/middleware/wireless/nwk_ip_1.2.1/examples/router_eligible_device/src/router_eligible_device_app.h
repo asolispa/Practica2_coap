@@ -48,6 +48,7 @@ Public macros
 #define VISITED_ACK_MSG_LENGTH 5
 #define VISITED_RESP_ACK_MSG_LENGTH 6
 #define LIGHTHOUSE_ACK_MSG_LENGTH 15
+#define PARKING_ACK_MSG_LENGTH 26
 /*==================================================================================================
 Public type definitions
 ==================================================================================================*/
