@@ -134,6 +134,7 @@ static bool_t mJoiningIsAppInitiated = FALSE;
 
 static frontGateStateMachine_T frontGateStateMachine  = idleFrontGateState;
 extern housetateMachine_T houseStateMachine  = idlehouseState;
+static uint8_t pSlots[1]="5";
 
 extern ipAddr_t houseIP = {0};
 extern ipAddr_t parkingIP = {0};
@@ -658,39 +659,10 @@ static void APP_CoapAcceptanceCb(coapSessionStatus_t sessionStatus, void *pData,
 ***************************************************************************************************/
 static void APP_CoapAvaliableParkingCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen)
 {
-	uint8_t* pIndex = NULL;
-    uint8_t *pTempString = MEM_BufferAlloc(10);
-    uint32_t ackPloadSize = 0;
-    static uint8_t pSlots[1]="5";
     static uint8_t noPlacesStr[]="No_places,_go_to_guest_house";
     uint8_t placeHolder = 0;
-    static uint32_t pSlotsSize=1;
 
     /* Send CoAP ACK */
-#ifdef HUB
-    if(gCoapGET_c == pSession->code)
-    {
-    	if(pTempString) {
-    	    /* Clear data and reset buffers */
-    	    FLib_MemSet(pTempString, 0, 10);
-
-    	    /* Compute output */
-    	    pIndex = pTempString;
-    	    NWKU_PrintDec((uint8_t)(last_temperature_cx10/10), pIndex, 2, TRUE);
-    	    pIndex += 2; /* keep only the first 2 digits */
-    	    *pIndex = '.';
-    	    pIndex++;
-    	    NWKU_PrintDec((uint8_t)(abs(last_temperature_cx10)%10), pIndex, 1, TRUE);
-    		ackPloadSize = strlen((char*)pTempString);
-    	}
-    }
-
-    /* Do not parse the message if it is duplicated */
-    else if((gCoapPOST_c == pSession->code) && (sessionStatus == gCoapSuccess_c))
-    {
-
-    }
-#endif
 
     if(gCoapConfirmable_c == pSession->msgType)
     {
@@ -700,7 +672,7 @@ static void APP_CoapAvaliableParkingCb(coapSessionStatus_t sessionStatus, void *
         	placeHolder = pSlots[0];
         	if('0'< placeHolder)
         	{
-        		COAP_Send(pSession, gCoapMsgTypeAckSuccessChanged_c, &pSlots[0], pSlotsSize);
+        		COAP_Send(pSession, gCoapMsgTypeAckSuccessChanged_c, &pSlots[0], sizeof(pSlots));
         		placeHolder--;
         		pSlots[0] = placeHolder;
         	}
@@ -715,12 +687,6 @@ static void APP_CoapAvaliableParkingCb(coapSessionStatus_t sessionStatus, void *
             COAP_Send(pSession, gCoapMsgTypeAckSuccessChanged_c, NULL, 0);
         }
     }
-#ifdef HUB
-    if(pTempString)
-    {
-        MEM_BufferFree(pTempString);
-    }
-#endif
 }
 
 
@@ -771,6 +737,28 @@ static void APP_CoapLightparkingCb(coapSessionStatus_t sessionStatus, void *pDat
 }
 static void APP_CoapGuestleavingCb(coapSessionStatus_t sessionStatus, void *pData, coapSession_t *pSession, uint32_t dataLen)
 {
+    uint8_t placeHolder = 0;
+
+    /* Send CoAP ACK */
+
+    if(gCoapConfirmable_c == pSession->msgType)
+    {
+
+        if(gCoapPOST_c == pSession->code)
+        {
+            placeHolder = pSlots[0];
+            if('5'> placeHolder)
+            {
+                placeHolder++;
+                pSlots[0] = placeHolder;
+            }
+            shell_write("guest leaving!!");
+        }
+        if (gCoapFailure_c!=sessionStatus)
+        {
+            COAP_Send(pSession, gCoapMsgTypeAckSuccessChanged_c, &pSlots[0], sizeof(pSlots));
+        }
+    }
 
 }
 
